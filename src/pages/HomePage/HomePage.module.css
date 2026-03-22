@@ -1,0 +1,241 @@
+.page {
+  min-height: 100vh;
+  background: radial-gradient(1200px 600px at 20% 0%, rgba(96, 100, 40, 0.314), transparent 60%),
+    radial-gradient(900px 500px at 90% 10%, rgba(61, 90, 31, 0.325), transparent 55%),
+    #070a10;
+  color: #fff;
+}
+
+.main {
+  padding: 28px 5px 60px 5px;
+  margin: 0 auto;
+}
+
+.hero {
+  min-height: 28vh;
+  /* background: rgb(230, 205, 205); */
+  display: flex;
+  justify-content: center;
+  align-items: start;
+}
+
+.heroLogoBlock {
+  /* background: rgba(145, 52, 52, 0.841); */
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.heroLogo {
+  width: min(220px, 60vw);
+  height: auto;
+  /* mix-blend-mode: multiply; */
+  filter: opacity(0.5) invert(1);
+}
+
+.heroWordmark {
+  width: min(520px, 85vw);
+  height: auto;
+}
+
+.h1 {
+  font-size: 36px;
+  margin: 0 0 10px;
+}
+
+.subtitle {
+  margin: 0 0 18px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.aboutSection {
+  margin-top: 26px;
+  padding: 20px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sectionTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.aboutGrid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1.6fr 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.sideArt {
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+}
+
+.aboutImageButton {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.aboutImage {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.aboutBtn {
+  background: #2f8cff;
+  border: 0;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.tabsSection {
+  margin-top: 26px;
+  padding: 20px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.tabs {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tabItem {
+  margin: 0;
+}
+
+.tab {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.86);
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.tabSelected {
+  background: rgba(47, 140, 255, 0.24);
+  border: 1px solid rgba(47, 140, 255, 0.6);
+  color: #fff;
+  padding: 10px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.contentBox {
+  padding: 18px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.contentActions {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.primaryAction {
+  display: inline-block;
+  text-decoration: none;
+  background: #2f8cff;
+  color: #fff;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.secondaryAction {
+  display: inline-block;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.contentTitle {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+.contentBody {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.5;
+}
+
+.modalTitle {
+  margin: 0 0 10px;
+}
+
+.modalBody {
+  margin: 0 0 12px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.55;
+}
+
+.contactSection {
+  margin-top: 26px;
+  padding: 20px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.contactsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.contactArt {
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+}
+
+.contactCard {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.16);
+  border-radius: 14px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+@media (max-width: 920px) {
+  .aboutGrid,
+  .contactsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .sectionTitleRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+

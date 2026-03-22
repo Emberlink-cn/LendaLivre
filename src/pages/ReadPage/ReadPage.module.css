@@ -1,0 +1,185 @@
+.page {
+  min-height: 100vh;
+  background: #070a10;
+  color: #fff;
+}
+
+.main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 26px 16px 60px;
+}
+
+.header {
+  padding: 18px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.h1 {
+  margin: 0 0 8px;
+  font-size: 34px;
+}
+
+.subtitle {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.synopsis {
+  margin: 10px 0 0;
+  color: rgba(255, 255, 255, 0.84);
+  line-height: 1.5;
+}
+
+.readLayout {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 14px;
+}
+
+.chaptersPanel,
+.readerPreview {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 14px;
+}
+
+.panelTitle {
+  margin: 0 0 10px;
+  font-size: 20px;
+}
+
+.chapters {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chapterBtn {
+  text-align: left;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  color: #fff;
+  padding: 14px 14px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.chapterBtnPrimary {
+  text-align: left;
+  background: rgba(47, 140, 255, 0.20);
+  border: 1px solid rgba(47, 140, 255, 0.6);
+  color: #fff;
+  padding: 14px 14px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.empty {
+  padding: 16px;
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  border-radius: 14px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.previewBox {
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.18);
+  padding: 14px;
+}
+
+.previewTitle {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.previewText {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.84);
+  line-height: 1.5;
+}
+
+.openReaderBtn {
+  margin-top: 12px;
+  border: 0;
+  border-radius: 10px;
+  background: #2f8cff;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 10px 12px;
+}
+
+.readFooter {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.footerBadge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.modalTitle {
+  margin: 0 0 12px;
+}
+
+.section {
+  margin-top: 16px;
+}
+
+.sectionHeading {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.paragraph {
+  margin: 0 0 10px;
+  color: rgba(255, 255, 255, 0.86);
+  line-height: 1.6;
+}
+
+.modalActions {
+  margin-top: 16px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.modalNavBtn {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  border-radius: 10px;
+  font-weight: 700;
+  padding: 8px 11px;
+  cursor: pointer;
+}
+
+.modalNavBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 960px) {
+  .readLayout {
+    grid-template-columns: 1fr;
+  }
+}
+

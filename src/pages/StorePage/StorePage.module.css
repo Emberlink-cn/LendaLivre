@@ -1,0 +1,163 @@
+.page {
+  min-height: 100vh;
+  background: #070a10;
+  color: #fff;
+}
+
+.main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 26px 16px 60px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.h1 {
+  margin: 0 0 8px;
+  font-size: 34px;
+}
+
+.subtitle {
+  margin: 0 0 18px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.mobileMenuBtn {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-weight: 700;
+  display: none;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 270px 1fr;
+  gap: 14px;
+}
+
+.menu {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 14px;
+  height: fit-content;
+}
+
+.menuTitle {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+
+.menuList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.menuItem,
+.menuItemActive {
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.menuItemActive {
+  border-color: rgba(47, 140, 255, 0.65);
+  background: rgba(47, 140, 255, 0.22);
+}
+
+.mobileMenu {
+  display: none;
+}
+
+.content {
+  display: grid;
+  gap: 12px;
+}
+
+.sectionCard {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 14px 16px;
+}
+
+.iframeBox {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  overflow: hidden;
+}
+
+.iframeTitle {
+  margin: 0;
+  font-size: 18px;
+}
+
+.sectionDescription {
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, 0.84);
+  line-height: 1.45;
+}
+
+.iframe {
+  width: 100%;
+  height: 520px;
+  border: 0;
+  display: block;
+}
+
+.placeholderCard {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 18px 16px;
+}
+
+.placeholderCard h3 {
+  margin: 0 0 10px;
+}
+
+.placeholderCard p {
+  margin: 0 0 8px;
+  color: rgba(255, 255, 255, 0.84);
+}
+
+@media (max-width: 920px) {
+  .mobileMenuBtn {
+    display: inline-block;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .menu {
+    display: none;
+  }
+
+  .mobileMenu {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+}
+

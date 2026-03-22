@@ -1,0 +1,45 @@
+.page {
+  min-height: 100vh;
+  background: #070a10;
+  color: #fff;
+}
+
+.main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 26px 16px 60px;
+}
+
+.h1 {
+  margin: 0 0 8px;
+  font-size: 34px;
+}
+
+.subtitle {
+  margin: 0 0 18px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.box {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 18px 16px;
+}
+
+.text {
+  margin: 0 0 14px;
+  color: rgba(255, 255, 255, 0.86);
+  line-height: 1.55;
+}
+
+.link {
+  display: inline-block;
+  background: #2f8cff;
+  color: #fff;
+  text-decoration: none;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-weight: 750;
+}
+
