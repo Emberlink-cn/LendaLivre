@@ -1,140 +1,96 @@
-import { useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import Modal from '../../components/common/Modal/Modal'
-import TopNav from '../../components/layout/TopNav/TopNav'
-import { MOCK_CHAPTERS_BY_WORK_ID, MOCK_WORKS } from '../../mocks/catalogMock'
+import { useEffect } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import ReadTools from '../../components/read/ReadTools'
+import { useLibrary } from '../../context/LibraryContext'
+import { useReading } from '../../context/ReadingContext'
 import styles from './ReadPage.module.css'
 
-function renderChapterContent(chapter) {
-  return chapter.sections.map((sec, idx) => (
-    <div key={`${chapter.id}-sec-${idx}`} className={styles.section}>
-      <h3 className={styles.sectionHeading}>{sec.heading}</h3>
-      {sec.paragraphs.map((p, pIdx) => (
-        <p key={`${chapter.id}-sec-${idx}-p-${pIdx}`} className={styles.paragraph}>
-          {p}
-        </p>
-      ))}
-    </div>
-  ))
+function isMusicMark(text) {
+  return /^[♪♫\s]+$/.test(text)
 }
 
-export default function ReadPage() {
-  const { workId } = useParams()
-  const [openChapterId, setOpenChapterId] = useState(null)
-
-  const work = useMemo(() => MOCK_WORKS.find((w) => w.id === workId) ?? null, [workId])
-  const chapters = useMemo(() => MOCK_CHAPTERS_BY_WORK_ID[workId] ?? [], [workId])
-
-  const openChapter = useMemo(() => {
-    if (!openChapterId) return null
-    return chapters.find((c) => c.id === openChapterId) ?? null
-  }, [openChapterId, chapters])
-
-  const openChapterIndex = useMemo(() => {
-    if (!openChapter) return -1
-    return chapters.findIndex((c) => c.id === openChapter.id)
-  }, [openChapter, chapters])
-
-  const hasPrev = openChapterIndex > 0
-  const hasNext = openChapterIndex >= 0 && openChapterIndex < chapters.length - 1
-
-  const openPrevChapter = () => {
-    if (!hasPrev) return
-    setOpenChapterId(chapters[openChapterIndex - 1].id)
-  }
-
-  const openNextChapter = () => {
-    if (!hasNext) return
-    setOpenChapterId(chapters[openChapterIndex + 1].id)
-  }
-
-  return (
-    <div className={styles.page}>
-      <TopNav />
-
-      <main className={styles.main}>
-        <header className={styles.header}>
-          <h1 className={styles.h1}>{work ? work.title : 'Obra nao encontrada'}</h1>
-          <p className={styles.subtitle}>
-            {work
-              ? `Tipo: ${work.type} • Autor: ${work.author} • ${work.year}`
-              : 'Verifique o ID na URL.'}
-          </p>
-          {work ? <p className={styles.synopsis}>{work.synopsis}</p> : null}
-        </header>
-
-        <section className={styles.readLayout}>
-          <aside className={styles.chaptersPanel} aria-label="Lista de capitulos">
-            <h2 className={styles.panelTitle}>Capitulos</h2>
-            {chapters.length === 0 ? (
-              <div className={styles.empty}>Sem capitulos disponiveis (mock).</div>
-            ) : (
-              <div className={styles.chapters}>
-                {chapters.map((ch) => {
-                  const isSelected = ch.id === openChapterId
-                  return (
-                    <button
-                      key={ch.id}
-                      className={isSelected ? styles.chapterBtnPrimary : styles.chapterBtn}
-                      onClick={() => setOpenChapterId(ch.id)}
-                    >
-                      {ch.title}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-          </aside>
-
-          <section className={styles.readerPreview}>
-            <h2 className={styles.panelTitle}>Leitor</h2>
-            {openChapter ? (
-              <div className={styles.previewBox}>
-                <h3 className={styles.previewTitle}>{openChapter.title}</h3>
-                <p className={styles.previewText}>
-                  Clique em "Reabrir capitulo" para entrar no modo de leitura completo.
-                </p>
-                <button className={styles.openReaderBtn} onClick={() => setOpenChapterId(openChapter.id)}>
-                  Reabrir capitulo
-                </button>
-              </div>
-            ) : (
-              <div className={styles.previewBox}>
-                <p className={styles.previewText}>
-                  Selecione um capitulo na coluna ao lado para iniciar a leitura.
-                </p>
-              </div>
-            )}
-          </section>
-        </section>
-
-        <footer className={styles.readFooter}>
-          <span className={styles.footerBadge}>Tempo estimado: {work?.readingTime ?? '-'}</span>
-          <span className={styles.footerBadge}>Capitulos: {chapters.length}</span>
-        </footer>
-      </main>
-
-      <Modal
-        isOpen={Boolean(openChapter)}
-        onClose={() => setOpenChapterId(null)}
-        title={openChapter?.title}
-      >
-        {openChapter ? (
-          <div>
-            <h2 className={styles.modalTitle}>{openChapter.title}</h2>
-            {renderChapterContent(openChapter)}
-            <div className={styles.modalActions}>
-              <button className={styles.modalNavBtn} disabled={!hasPrev} onClick={openPrevChapter}>
-                Capitulo anterior
-              </button>
-              <button className={styles.modalNavBtn} disabled={!hasNext} onClick={openNextChapter}>
-                Proximo capitulo
-              </button>
-            </div>
-          </div>
-        ) : null}
-      </Modal>
-    </div>
+function renderText(text) {
+  const parts = text.split(/(https?:\/\/\S+)/g)
+  return parts.map((part, index) =>
+    part.startsWith('http') ? (
+      <a key={`${part}-${index}`} href={part} target="_blank" rel="noreferrer">
+        {part}
+      </a>
+    ) : (
+      <span key={`${index}-${part.slice(0, 12)}`}>{part}</span>
+    ),
   )
 }
 
+function ChapterBody({ paragraphs }) {
+  let leadUsed = false
+  return paragraphs.map((paragraph, index) => {
+    const music = isMusicMark(paragraph)
+    const lead = !leadUsed && !music
+    if (lead) leadUsed = true
+    const dialogue = /^[—_–-]/.test(paragraph)
+    const className = [music ? styles.music : '', lead ? styles.lead : '', dialogue ? styles.dialogue : '']
+      .filter(Boolean)
+      .join(' ')
+    return (
+      <p key={`${index}-${paragraph.slice(0, 24)}`} className={className || undefined}>
+        {renderText(paragraph)}
+      </p>
+    )
+  })
+}
+
+export default function ReadPage() {
+  const { workId, chapterId } = useParams()
+  const { getWork } = useLibrary()
+  const work = getWork(workId)
+  const chapter = work?.chapters.find((item) => item.id === chapterId) ?? null
+  const { fontScale, remember } = useReading()
+
+  useEffect(() => {
+    document.title = chapter ? `${chapter.title} · LendaLivre` : 'Leitura · LendaLivre'
+  }, [chapter])
+
+  useEffect(() => {
+    if (workId && chapterId) remember(workId, chapterId)
+  }, [workId, chapterId, remember])
+
+  if (!work || !chapter) {
+    return (
+      <div className={styles.missing}>
+        <h1>Capítulo não encontrado</h1>
+        <Link to={work ? `/obra/${work.id}` : '/catalogo'}>Voltar</Link>
+      </div>
+    )
+  }
+
+  const index = work.chapters.findIndex((item) => item.id === chapter.id)
+  const prev = index > 0 ? work.chapters[index - 1] : null
+  const next = index < work.chapters.length - 1 ? work.chapters[index + 1] : null
+
+  return (
+    <ReadTools work={work} chapter={chapter}>
+    <article className={styles.page}>
+      <p className={styles.kicker}>
+        <Link to={`/obra/${work.id}`}>{work.title}</Link>
+        <span>
+          Capítulo {index + 1} de {work.chapters.length}
+        </span>
+      </p>
+      {chapter.note ? <p className={styles.note}>{chapter.note}</p> : null}
+      <h1>{chapter.title}</h1>
+      <div className={styles.prose} style={{ fontSize: `${fontScale}rem` }}>
+        <ChapterBody paragraphs={chapter.paragraphs} />
+      </div>
+      <nav className={styles.pager} aria-label="Capítulos">
+        {prev ? (
+          <Link to={`/ler/${work.id}/${prev.id}`}>← {prev.title}</Link>
+        ) : (
+          <span />
+        )}
+        {next ? <Link to={`/ler/${work.id}/${next.id}`}>{next.title} →</Link> : <span />}
+      </nav>
+    </article>
+    </ReadTools>
+  )
+}

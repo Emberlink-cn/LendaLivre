@@ -1,109 +1,113 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
+  --bg: #07080b;
+  --bg-raise: #101218;
+  --ink: #f3efe4;
+  --muted: #a89f92;
+  --gold: #e2b15a;
+  --ember: #d4652f;
+  --line: rgba(243, 239, 228, 0.14);
+  --line-strong: rgba(243, 239, 228, 0.28);
+  --glass: rgba(12, 14, 18, 0.62);
+  --glass-strong: rgba(8, 9, 12, 0.78);
+  --chip: rgba(12, 14, 18, 0.45);
+  --field: rgba(255, 255, 255, 0.04);
+  --header-bg: rgba(7, 8, 11, 0.28);
+  --header-solid: rgba(7, 8, 11, 0.72);
+  --on-ink: #14120e;
+  --shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  --serif: 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  --sans: 'Outfit', 'Avenir Next', 'Segoe UI', sans-serif;
+  --radius: 22px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --header: calc(4.5rem + var(--safe-top));
+  color-scheme: dark;
+  font-family: var(--sans);
+  font-weight: 340;
+  color: var(--ink);
   background: var(--bg);
-  font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+:root[data-theme='light'] {
+  --bg: #f4efe6;
+  --bg-raise: #fffaf3;
+  --ink: #1c1915;
+  --muted: #5e564c;
+  --gold: #8a5a12;
+  --ember: #b4532a;
+  --line: rgba(28, 25, 21, 0.12);
+  --line-strong: rgba(28, 25, 21, 0.22);
+  --glass: rgba(255, 250, 243, 0.72);
+  --glass-strong: rgba(255, 250, 243, 0.94);
+  --chip: rgba(255, 250, 243, 0.72);
+  --field: rgba(28, 25, 21, 0.05);
+  --header-bg: rgba(244, 239, 230, 0.5);
+  --header-solid: rgba(244, 239, 230, 0.9);
+  --on-ink: #f7f3ea;
+  --shadow: 0 24px 60px rgba(60, 40, 10, 0.12);
+  color-scheme: light;
 }
 
-body {
-  margin: 0;
-}
-
-#root {
-  width: 100%;
-  max-width: none;
-  margin: 0 auto;
-  min-height: 100svh;
-  text-align: left;
-  display: block;
+* {
   box-sizing: border-box;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
+body {
+  background:
+    radial-gradient(1200px 500px at 80% -10%, rgba(226, 177, 90, 0.08), transparent 55%),
+    var(--bg);
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
+
+button,
+input,
+textarea,
+select,
+a {
+  font: inherit;
+  color: inherit;
 }
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+h1,
+h2,
+h3,
 p {
   margin: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+::selection {
+  background: rgba(226, 177, 90, 0.35);
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }

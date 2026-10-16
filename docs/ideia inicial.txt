@@ -1,0 +1,79 @@
+Consultei uma IA:
+
+"Tenho uma ideia de criação a anos, ela evolve literatura no estilo de fantasia, entretenimento, desenvolvimento de softwares e games, e até um pouco de produção audio visual.
+
+
+1 - tenho uma história de fantasia da qual comecei a escrever um livro ela ainda está incompleta mas tem muito potencial, e é baseada nos personagens do folclore brasileiro, mas com um tom mais adulto, fantástico e político
+
+2 - um app web de leitura com versão mobile para publicar capítulos da história principal (já até iniciei um projeto mas está bem básico), no app além de ler a história, assinantes tem acesso à coletas de itens que podem armazenar em seus inventários, os itens podem ser ilustrações, cards, objetos interessantes citados na história principal, etc. além disso, também ter rankings de usuário (baseado em suas conquistas de coletas de itens (por exemplo:
+um número x de primeiros usuários a coletar todos os ícones de um capítulo lançado).
+possibilidade de adicionar amigos e visualizar suas páginas de perfis.
+
+3 - um jogo rpg com versões web e tabuleiro, com mapa, história, eventos, itens, cartas de habilidades, etc também baseado na história principal.
+Ele seria um jogo para jogar em até 8 jogadores, com criação de conta online grátis e loja interna para itens personalizações etc.
+
+
+4 - Um jogo mobile vertical de rolagem infinita (estilo tiktok que rola videos verticalmente).
+o Jogo consiste em cada jogador criar seu personagem,  (cada conta só pode ter 1 personagem), escolher sexo do personagem, tipos iniciais de vestimentas, altura, estrutura corporal e cor da pele.
+
+Com o personagem criado ele fica no seu "saguão" ou sala, e então o jogador pode escolher entrar no vácuo (campo de batalha online), e ai as partidas começam.
+o personagem do jogador enfrenta o personagem de outro jogador que também estiver online no vácuo ambos os personagens ficam de frente um para o outro, mas pro jogador seu personagem fica como se estivesse de costas só um pouco na diagonal para que posse se ver o personagem do inimigo lá na frente, que inclusive está de frente prá nós (jogador).
+
+ali será disputado uma luta de 3 turnos. em cada turno os jogadores escolhes suas cartas e montam combinações para o próximo ataque/defesa.
+quando os dois estiverem prontos ou o tempo de preparação acabar acontece a batalha com animações dos personagens.
+
+o vencedor ganha experiência e pontos de imersão.
+
+após a batalha o jogador rola a tela verticalmente para o próximo possível adversário.
+em cada encontro os jogadores podem se desafiar para uma batalha ou simplesmente apenas continuar rolando e vendo os outros perfis online para desafiar quem quiser (o desafiado pode aceitar ou recusar a batalha).
+
+esse  é o conceito do jogo. Sobre estilo, pensei em usar 2D bem estilizado e com profundidade (para simular o espaço entre os personagens dos jogadores que está um aqui perto de costas pra tela, e o outro lá na frente nos encarando).
+
+as habilidades, armas e vestimentas são baseadas na história principal do livro.
+
+
+Resumi os 4 projetos, e preciso de ajuda para organiza-los para iniciar a escrita e desenvolvimentos. Pensei em criar 4 docs .md de planejamento (um pra cada projeto), e um projeto pai, que reúne as informações principais que une todo o resto (estilo, cenários, climas, nomes de itens, lugares, personagens, habilidades, etc), assim cada projeto tem o mesmo núcleo de atmosfera e universo.
+
+quero começar com o app de leitura (pelo menos um MVP) para depois já poder começar a publicar os capítulos da minha história.
+
+depois gostaria de tentar fazer um mvp para o jogo do projeto 4.
+
+o jogosde rpg web ficaria para depois de um avanço legal do projeto 4 , e o RPG de mesa no final, pois caso tenha conseguido bastante público, pode ser interessante para colecionadores que gostam deste tipo de produto, e claro, pode ser mais fácil uma parceria com fabricantes e editoras/distribuidoras se os projetos anteriores construírem um bom público.
+
+
+enviei um print apenas para ilustrar o estilo que gostaria para os visuais pro projeto 4.
+
+depois envio o que já possuo do app de leitura.
+
+pode me ajudar com a criação dos projetos?
+
+Obs, para o app web de leitura, pretendo utilizar:
+html5, css, javascript, reactjs, node, postgresql, railway, e cloudflare. (é basicamente o que já utilizo no projeto que tenho iniciado)
+
+para o jogo não sei do que vou precisar.
+
+
+
+Resposta da minha consulta:
+"Vou criar os 5 documentos já com a estrutura e o que você me contou. Onde falta informação (nomes, lore, etc.), deixei campos [PREENCHER] para você completar.
+
+Criei os 5 documentos .md: o núcleo do universo (projeto pai) e um para cada projeto (livro, app de leitura, RPG e jogo vertical). Tudo o que ainda não sei da sua história está marcado como [PREENCHER].
+
+Algumas decisões que tomei e que você pode mudar:
+
+Catálogo central com IDs estáveis. Itens e habilidades têm IDs fixos (item_0001, skill_0001) no núcleo. O app, o jogo e o RPG referenciam o mesmo ID, então um item coletado num capítulo pode virar equipamento no jogo sem retrabalho.
+Conta única. O login do app de leitura serve também para o jogo vertical e o RPG.
+Ordem do roadmap. Segue a que você pediu: app, depois jogo vertical, depois RPG web, depois tabuleiro. O 02-app-leitura.md divide o app em 3 MVPs (ler e publicar; coleta e inventário; social e ranking), porque o primeiro já basta para você publicar capítulos.
+Jogo vertical: o maior risco é o feed ficar vazio. Com poucos jogadores online, a rolagem infinita não tem ninguém para mostrar. Sugeri batalhas contra “fantasmas” (perfis de jogadores offline controlados pelo servidor), para o jogo funcionar mesmo com um único usuário.
+Personagem por camadas. Em vez de desenhar cada combinação de corpo, roupa e cor de pele, o personagem é montado por peças trocáveis. Isso torna a arte viável para uma pessoa ou time pequeno.
+Tecnologia do jogo. Sugeri PixiJS ou Phaser para o visual 2D, React para a interface, WebSocket em Node para o tempo real e PWA no início. Godot aparece como alternativa se você preferir um app nativo desde o começo.
+Servidor decide as batalhas. O cliente só envia as cartas escolhidas, para evitar trapaça.
+
+A imagem de referência parece ser de um jogo comercial. Use-a como inspiração de estilo (paleta, composição, traço), mas não copie personagens nem assets. Isso está anotado no núcleo.
+
+Os próximos passos que sugiro:
+
+Me enviar o projeto atual do app de leitura, para eu ver o que aproveitar e fechar o escopo do MVP 1.
+Preencher o mínimo do núcleo (nome do universo, tom, regras de magia, 3 a 5 personagens principais e a paleta), o que já destrava as ilustrações e os itens.
+Se quiser, eu ajudo a organizar o que você já escreveu do livro no formato de ficha de capítulo, com os itens coletáveis de cada um."
+

@@ -1,0 +1,76 @@
+.wrap {
+  position: relative;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.6rem;
+  padding: 0.2rem 0.7rem 0.2rem 0.2rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--chip);
+  cursor: pointer;
+}
+
+.name {
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menu {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  display: grid;
+  min-width: 14rem;
+  padding: 0.4rem;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--glass-strong);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.email {
+  padding: 0.45rem 0.7rem 0.2rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.menu a,
+.menu button {
+  display: flex;
+  align-items: center;
+  min-height: 2.6rem;
+  padding: 0 0.7rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.menu a:hover,
+.menu button:hover {
+  background: rgba(226, 177, 90, 0.12);
+}
+
+.drawerLink {
+  display: flex;
+  align-items: center;
+  min-height: 3rem;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}

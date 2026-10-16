@@ -1,0 +1,32 @@
+.face {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  font-family: var(--serif);
+  font-size: 0.95rem;
+  color: #1c1915;
+}
+
+.leaf {
+  background: #c8d5b9;
+}
+
+.mark {
+  background: #e2b15a;
+}
+
+.river {
+  background: #b7c7d6;
+}
+
+.ember {
+  background: #e7b2a2;
+}
+
+.itemImage {
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}

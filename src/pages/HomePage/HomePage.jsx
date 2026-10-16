@@ -1,105 +1,134 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import Modal from '../../components/common/Modal/Modal'
-import TopNav from '../../components/layout/TopNav/TopNav'
+import { useLibrary } from '../../context/LibraryContext'
+import { useReading } from '../../context/ReadingContext'
+import { HERO_IMAGE } from '../../data/catalog'
 import styles from './HomePage.module.css'
 
+const NOTES = [
+  {
+    title: 'Leitura',
+    text: 'Coluna estreita, tipo serifado e tamanho de letra ajustável. O capítulo ocupa a página, sem janela por cima.',
+  },
+  {
+    title: 'O tom',
+    text: 'Noite, terra, mata e criaturas maiores que a gente. As capas trazem a cor. A sala fica escura para não competir com elas.',
+  },
+  {
+    title: 'Depois',
+    text: 'Seis obras já abrem o capítulo escrito. Itens, inventário e trilha ficam neste navegador até existir o servidor.',
+  },
+]
+
 export default function HomePage() {
-  const [aboutOpen, setAboutOpen] = useState(false)
+  const { works, getWork } = useLibrary()
+  const { last } = useReading()
+  const railRef = useRef(null)
+  const [canPrev, setCanPrev] = useState(false)
+  const [canNext, setCanNext] = useState(true)
+  const continueWork = last ? getWork(last.workId) : null
+  const continueChapter = continueWork?.chapters.find((chapter) => chapter.id === last?.chapterId)
+
+  function syncRail() {
+    const rail = railRef.current
+    if (!rail) return
+    setCanPrev(rail.scrollLeft > 8)
+    setCanNext(rail.scrollLeft + rail.clientWidth < rail.scrollWidth - 8)
+  }
+
+  useEffect(() => {
+    const rail = railRef.current
+    if (!rail) return undefined
+    rail.addEventListener('scroll', syncRail, { passive: true })
+    window.addEventListener('resize', syncRail)
+    return () => {
+      rail.removeEventListener('scroll', syncRail)
+      window.removeEventListener('resize', syncRail)
+    }
+  }, [works.length])
+
+  function moveRail(direction) {
+    const rail = railRef.current
+    if (!rail) return
+    const card = rail.querySelector('a')
+    const distance = card ? card.getBoundingClientRect().width * 2 + 24 : rail.clientWidth * 0.8
+    rail.scrollBy({ left: direction * distance, behavior: 'auto' })
+    syncRail()
+  }
+
+  useEffect(() => {
+    document.title = 'LendaLivre'
+  }, [])
 
   return (
     <div className={styles.page}>
-      <TopNav homeAnchors />
-
-      <main className={styles.main}>
-        <section id="home" className={styles.hero}>
-          <div className={styles.heroLogoBlock}>
-            <img
-              src="/midias/home-page/logo/art_logo.png"
-              alt="Logo da empresa"
-              className={styles.heroLogo}
-            />
-            <img
-              src="/midias/home-page/logo/LOGO-HOME-01.png"
-              alt="Nome da empresa"
-              className={styles.heroWordmark}
-            />
-          </div>
-        </section>
-
-        <section id="about" className={styles.aboutSection}>
-          <div className={styles.sectionTitleRow}>
-            <h1 className={styles.h1}>Sobre Nos</h1>
-            <button className={styles.aboutBtn} onClick={() => setAboutOpen(true)}>
-              Ler manifesto
-            </button>
-          </div>
-          <p className={styles.subtitle}>
-            Projeto autoral de leitura digital, construido de forma independente.
+      <section
+        className={styles.hero}
+        style={{ backgroundImage: `url("${HERO_IMAGE}")` }}
+        aria-label="Abertura"
+      >
+        <div className={styles.heroShade} />
+        <div className={styles.panel}>
+          <p className={styles.eyebrow}>Fantasia adulta · folclore brasileiro</p>
+          <h1 className={styles.title}>LendaLivre</h1>
+          <p className={styles.lead}>
+            Travessia, mito e paisagem. Uma sala escura para ler o universo em capítulos.
           </p>
-          <div className={styles.aboutGrid}>
-            <img
-              src="/midias/home-page/sobre/imagem-lateral-esquerda-01.png"
-              alt="Ilustracao lateral esquerda"
-              className={styles.sideArt}
-            />
-
-            <button className={styles.aboutImageButton} onClick={() => setAboutOpen(true)}>
-              <img
-                src="/midias/home-page/sobre/imagem-sobre-nos.png"
-                alt="Ilustracao sobre nos"
-                className={styles.aboutImage}
-              />
-            </button>
-
-            <img
-              src="/midias/home-page/sobre/imagem-lateral-direita-01.png"
-              alt="Ilustracao lateral direita"
-              className={styles.sideArt}
-            />
-          </div>
-        </section>
-
-        <section id="contacts" className={styles.contactSection}>
-          <h1 className={styles.h1}>Contatos</h1>
-          <div className={styles.contactsGrid}>
-            <img
-              src="/midias/home-page/contatos/imagem-lateral-esquerda-04.png"
-              alt="Ilustracao contatos esquerda"
-              className={styles.contactArt}
-            />
-
-            <div className={styles.contactCard}>
-              <p className={styles.contentBody}>Instagram: @cofcof.prod</p>
-              <p className={styles.contentBody}>LinkedIn: Cof Cof Producoes</p>
-              <p className={styles.contentBody}>Email: cofcof.prod@gmail.com</p>
-              <p className={styles.contentBody}>Whatsapp: +55 16 99152-3778</p>
-              <Link to="/login" className={styles.primaryAction}>
-                Login
+          <div className={styles.ctaRow}>
+            <Link className={styles.primary} to="/catalogo">
+              Abrir o catálogo
+            </Link>
+            {continueChapter ? (
+              <Link className={styles.ghost} to={`/ler/${last.workId}/${last.chapterId}`}>
+                Continuar leitura
               </Link>
-            </div>
-
-            <img
-              src="/midias/home-page/contatos/imagem-lateral-direita-04.jpg"
-              alt="Ilustracao contatos direita"
-              className={styles.contactArt}
-            />
+            ) : (
+              <Link className={styles.ghost} to="/obra/lazaro">
+                Ver Lázaro
+              </Link>
+            )}
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
 
-      <Modal isOpen={aboutOpen} onClose={() => setAboutOpen(false)} title="Sobre">
-        <h2 className={styles.modalTitle}>Sobre</h2>
-        <p className={styles.modalBody}>
-          Somos dois amigos contadores de historias e decidimos transformar nosso sonho em algo concreto.
-          Assim nasceu a Cof Cof Producoes.
-        </p>
-        <p className={styles.modalBody}>
-          O portal atual esta em evolucao continua e em breve sera conectado ao backend para renderizar
-          catalogo, obras e capitulos dinamicamente.
-        </p>
-      </Modal>
+      <section className={styles.section} aria-labelledby="capas-titulo">
+        <div className={styles.sectionHead}>
+          <div>
+            <h2 id="capas-titulo">As capas</h2>
+            <p>Cada card abre a capa da obra. A leitura começa na página do capítulo.</p>
+          </div>
+          <div className={styles.railNav}>
+            <button type="button" onClick={() => moveRail(-1)} disabled={!canPrev} aria-label="Capas anteriores">
+              {'<'}
+            </button>
+            <button type="button" onClick={() => moveRail(1)} disabled={!canNext} aria-label="Próximas capas">
+              {'>'}
+            </button>
+          </div>
+        </div>
+        <div className={styles.rail} ref={railRef}>
+          {works.map((work) => (
+            <Link key={work.id} to={`/obra/${work.id}`} className={styles.railCard}>
+              {work.cover ? <img src={work.cover} alt="" /> : <span className={styles.railMark}>{work.title.slice(0, 1)}</span>}
+              <span className={styles.railTitle}>{work.title}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.notes} aria-label="Sobre esta sala">
+        {NOTES.map((note) => (
+          <article key={note.title} className={styles.note}>
+            <h2>{note.title}</h2>
+            <p>{note.text}</p>
+          </article>
+        ))}
+      </section>
+
+      <footer className={styles.footer}>
+        <p>LendaLivre · Cof Cof Produções</p>
+        <p>Conteúdo adulto. O texto publicado é o dos arquivos de capítulo.</p>
+      </footer>
     </div>
   )
 }
-
