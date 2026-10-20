@@ -8,6 +8,7 @@ export const DEMO_USERS = [
     avatar: 'leaf',
     level: 2,
     rank: 'Viajante',
+    since: '2026-01-18',
   },
   {
     id: 'user_criador',
@@ -18,5 +19,6 @@ export const DEMO_USERS = [
     avatar: 'mark',
     level: 1,
     rank: 'Criador',
+    since: '2025-11-02',
   },
 ]

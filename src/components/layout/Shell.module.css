@@ -303,6 +303,16 @@
   }
 }
 
+@media (min-width: 900px) {
+  .main.mainWork {
+    height: 100svh;
+    overflow: hidden;
+    align-items: stretch;
+    grid-template-rows: minmax(0, 1fr);
+    padding-bottom: 1.15rem;
+  }
+}
+
 @media (max-width: 859px) {
   .main {
     display: grid;

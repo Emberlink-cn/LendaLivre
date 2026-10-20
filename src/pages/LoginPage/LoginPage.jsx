@@ -67,7 +67,7 @@ export default function LoginPage() {
           {loading ? 'Entrando…' : 'Entrar'}
         </button>
         <p className={styles.switch}>
-          Ainda sem conta? <Link to="/criar-conta">Criar</Link>
+          Ainda sem conta? <Link to="/criar-conta">Criar conta grátis</Link>
         </p>
         <div className={styles.demos}>
           <p>Contas de demonstração</p>

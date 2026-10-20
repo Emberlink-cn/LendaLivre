@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLibrary } from '../../context/LibraryContext'
-import { useReading } from '../../context/ReadingContext'
 import { HERO_IMAGE } from '../../data/catalog'
 import styles from './HomePage.module.css'
 
@@ -16,18 +15,15 @@ const NOTES = [
   },
   {
     title: 'Depois',
-    text: 'Seis obras já abrem o capítulo escrito. Itens, inventário e trilha ficam neste navegador até existir o servidor.',
+    text: 'Os capítulos escritos de Terras Invisíveis já abrem a leitura. Itens, inventário e trilha ficam neste navegador até existir o servidor.',
   },
 ]
 
 export default function HomePage() {
-  const { works, getWork } = useLibrary()
-  const { last } = useReading()
+  const { works } = useLibrary()
   const railRef = useRef(null)
   const [canPrev, setCanPrev] = useState(false)
   const [canNext, setCanNext] = useState(true)
-  const continueWork = last ? getWork(last.workId) : null
-  const continueChapter = continueWork?.chapters.find((chapter) => chapter.id === last?.chapterId)
 
   function syncRail() {
     const rail = railRef.current
@@ -75,18 +71,12 @@ export default function HomePage() {
             Travessia, mito e paisagem. Uma sala escura para ler o universo em capítulos.
           </p>
           <div className={styles.ctaRow}>
-            <Link className={styles.primary} to="/catalogo">
-              Abrir o catálogo
+            <Link className={styles.primary} to="/entrar">
+              Entrar
             </Link>
-            {continueChapter ? (
-              <Link className={styles.ghost} to={`/ler/${last.workId}/${last.chapterId}`}>
-                Continuar leitura
-              </Link>
-            ) : (
-              <Link className={styles.ghost} to="/obra/lazaro">
-                Ver Lázaro
-              </Link>
-            )}
+            <Link className={styles.ghost} to="/criar-conta">
+              Criar conta grátis
+            </Link>
           </div>
         </div>
       </section>
@@ -95,7 +85,7 @@ export default function HomePage() {
         <div className={styles.sectionHead}>
           <div>
             <h2 id="capas-titulo">As capas</h2>
-            <p>Cada card abre a capa da obra. A leitura começa na página do capítulo.</p>
+            <p>Cada card é um capítulo de Terras Invisíveis.</p>
           </div>
           <div className={styles.railNav}>
             <button type="button" onClick={() => moveRail(-1)} disabled={!canPrev} aria-label="Capas anteriores">
@@ -107,12 +97,18 @@ export default function HomePage() {
           </div>
         </div>
         <div className={styles.rail} ref={railRef}>
-          {works.map((work) => (
-            <Link key={work.id} to={`/obra/${work.id}`} className={styles.railCard}>
-              {work.cover ? <img src={work.cover} alt="" /> : <span className={styles.railMark}>{work.title.slice(0, 1)}</span>}
-              <span className={styles.railTitle}>{work.title}</span>
-            </Link>
-          ))}
+          {works.flatMap((work) =>
+            work.chapters.map((chapter) => (
+              <Link key={`${work.id}:${chapter.id}`} to={`/obra/${work.id}/${chapter.id}`} className={styles.railCard}>
+                {chapter.cover ? (
+                  <img src={chapter.cover} alt="" />
+                ) : (
+                  <span className={styles.railMark}>{(chapter.name || chapter.title).slice(0, 1)}</span>
+                )}
+                <span className={styles.railTitle}>{chapter.name || chapter.title}</span>
+              </Link>
+            )),
+          )}
         </div>
       </section>
 

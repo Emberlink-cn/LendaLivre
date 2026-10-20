@@ -22,9 +22,17 @@ const LINKS = [
 ]
 
 function backTarget(pathname) {
-  if (pathname.startsWith('/criador/gerir/')) return '/criador/gerir'
+  if (pathname.startsWith('/criador/gerir/')) {
+    const parts = pathname.split('/').filter(Boolean)
+    if (parts.length >= 4) return `/criador/gerir/${parts[2]}`
+    return '/criador/gerir'
+  }
   if (pathname.startsWith('/criador')) return '/catalogo'
-  if (pathname.startsWith('/ler/')) return `/obra/${pathname.split('/')[2] || ''}`
+  if (pathname.startsWith('/ler/')) {
+    const [, , readWork, readChapter] = pathname.split('/')
+    return readChapter ? `/obra/${readWork}/${readChapter}` : `/obra/${readWork || ''}`
+  }
+  if (pathname.startsWith('/obra/') && pathname.split('/').length > 3) return `/obra/${pathname.split('/')[2]}`
   if (pathname.startsWith('/obra/')) return '/catalogo'
   if (pathname === '/entrar' || pathname === '/criar-conta') return '/'
   return '/'
@@ -40,7 +48,11 @@ function CollectBadge({ pathname }) {
   const found = (chapter.items ?? []).filter((item) => has(item.id)).length
 
   return (
-    <p className={styles.badge} aria-label={`${found} de ${total} coletáveis deste capítulo`}>
+    <p
+      className={styles.badge}
+      data-collect-badge
+      aria-label={`${found} de ${total} coletáveis deste capítulo`}
+    >
       Coletáveis {found} / {total}
     </p>
   )
@@ -50,6 +62,10 @@ function BackButton({ pathname }) {
   const navigate = useNavigate()
 
   function goBack() {
+    if (pathname === '/entrar') {
+      navigate('/')
+      return
+    }
     const idx = window.history.state?.idx
     if (typeof idx === 'number' && idx > 0) navigate(-1)
     else navigate(backTarget(pathname))
@@ -74,10 +90,21 @@ export default function Shell({ children }) {
   const menuBtnRef = useRef(null)
   const open = openPath === pathname
   const isHome = pathname === '/'
+  const showMenuButton = isAuthenticated || !isHome
   const isCatalog = pathname === '/catalogo'
+  const isWork = /^\/obra\/[^/]+$/.test(pathname)
   const isReader = pathname.startsWith('/ler/')
   const isInventory = pathname === '/inventario'
-  const navLinks = isAuthenticated ? LINKS.filter((link) => link.to !== '/catalogo') : LINKS
+  const guestLinks = pathname === '/entrar' ? LINKS.filter((link) => link.to !== '/catalogo') : LINKS
+  const desktopLinks = isHome
+    ? []
+    : isAuthenticated
+      ? [
+          { to: '/catalogo', label: 'Catálogo' },
+          { to: '/inventario', label: 'Inventário' },
+        ]
+      : guestLinks
+  const navLinks = isAuthenticated ? LINKS.filter((link) => link.to !== '/catalogo') : guestLinks
   const appliedTheme = isHome ? 'dark' : theme
 
   useLayoutEffect(() => {
@@ -94,7 +121,9 @@ export default function Shell({ children }) {
             ? `${styles.main} ${styles.mainInventory}`
             : isCatalog
               ? `${styles.main} ${styles.mainCatalog}`
-              : styles.main
+              : isWork
+                ? `${styles.main} ${styles.mainWork}`
+                : styles.main
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8)
@@ -142,18 +171,20 @@ export default function Shell({ children }) {
           LendaLivre
         </Link>
 
-        <nav className={styles.desktopNav} aria-label="Principal">
-          {navLinks.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              end={link.end}
-              className={({ isActive }) => (isActive ? styles.navActive : styles.navLink)}
-            >
-              {link.label}
-            </NavLink>
-          ))}
-        </nav>
+        {desktopLinks.length ? (
+          <nav className={styles.desktopNav} aria-label="Principal">
+            {desktopLinks.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end={link.end}
+                className={({ isActive }) => (isActive ? styles.navActive : styles.navLink)}
+              >
+                {link.label}
+              </NavLink>
+            ))}
+          </nav>
+        ) : null}
 
         <div className={styles.actions}>
           {isReader ? (
@@ -189,21 +220,23 @@ export default function Shell({ children }) {
             </Link>
           )}
 
-          <button
-            ref={menuBtnRef}
-            type="button"
-            className={isAuthenticated ? styles.avatarMenu : styles.menuBtn}
-            aria-expanded={open}
-            aria-controls="menu-mobile"
-            aria-label={open ? 'Fechar menu' : 'Menu'}
-            onClick={() => setOpenPath(open ? null : pathname)}
-          >
-            {isAuthenticated ? <Avatar name={user.name} face={user.avatar} size={32} /> : open ? 'Fechar' : 'Menu'}
-          </button>
+          {showMenuButton ? (
+            <button
+              ref={menuBtnRef}
+              type="button"
+              className={isAuthenticated ? styles.avatarMenu : styles.menuBtn}
+              aria-expanded={open}
+              aria-controls="menu-mobile"
+              aria-label={open ? 'Fechar menu' : 'Menu'}
+              onClick={() => setOpenPath(open ? null : pathname)}
+            >
+              {isAuthenticated ? <Avatar name={user.name} face={user.avatar} size={32} /> : open ? 'Fechar' : 'Menu'}
+            </button>
+          ) : null}
         </div>
       </header>
 
-      {open ? (
+      {showMenuButton && open ? (
         <nav ref={drawerRef} id="menu-mobile" className={styles.drawer} aria-label="Menu">
           {navLinks.map((link) => (
             <NavLink key={link.to} to={link.to} end={link.end} className={styles.drawerLink}>

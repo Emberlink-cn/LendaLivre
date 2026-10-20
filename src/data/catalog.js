@@ -10,148 +10,168 @@ export const ATMOSPHERES = ['Noite', 'Sertão', 'Mata', 'Mito', 'Cidade', 'Dia',
 
 export const MOODS = ['Todos', ...ATMOSPHERES]
 
-function writtenChapters(workId) {
-  const chapter = chapters[workId]
-  if (!chapter) return []
-  return [chapter]
-}
-
-export const WORKS = [
+const CHAPTER_SOURCES = [
   {
-    id: 'lazaro',
+    legacyId: 'lazaro',
     title: 'Lázaro',
     file: 'cardbook-Lazaro.jpg',
     moods: ['Noite', 'Sertão'],
     line: 'Lázaro sobe ao trono de Cogaua e parte sozinho de Xipaia, atrás do irmão e de Anahí.',
-    chapters: writtenChapters('lazaro'),
   },
   {
-    id: 'portoes',
+    legacyId: 'portoes',
     title: 'Os Portões da Areia',
     file: 'cardbook-Os Portões da Areia.jpg',
     moods: ['Sertão'],
     line: 'Um forasteiro atravessa as dunas com um saco de linho, até as portas de pedra se abrirem.',
-    chapters: writtenChapters('portoes'),
   },
   {
-    id: 'bamboo',
+    legacyId: 'bamboo',
     title: 'Bamboo',
     file: 'cardbook-Bamboo.jpeg',
     moods: ['Noite', 'Mata'],
     line: 'Noite de baile. Floria cuida de Babu, e Anahí não chega com as mercadorias.',
-    chapters: writtenChapters('bamboo'),
   },
   {
-    id: 'couro',
+    legacyId: 'couro',
     title: 'Couro e Escamas',
     file: 'cardbook-Couro e Escamas.jpg',
     moods: ['Mito', 'Sertão'],
     line: 'No bar O Último Gole, uma ordem de Cogaua aponta para a toca da serpente.',
-    chapters: writtenChapters('couro'),
   },
   {
-    id: 'vagalumes',
+    legacyId: 'vagalumes',
     title: 'Vagalumes',
     file: 'cardbook-Vagalumes.jpg',
     moods: ['Noite', 'Mata'],
     line: 'Dois homens colhem flores de vagalume na margem do rio, e depois correm.',
-    chapters: writtenChapters('vagalumes'),
   },
   {
-    id: 'cogaua',
+    legacyId: 'cogaua',
     title: 'Cogaua',
     file: 'cardbook-Saci.jpg',
     moods: ['Mito'],
     line: 'Rei de Xipaia. O trono no salão de pedra, o cachimbo e a ordem que manda partir sozinho.',
-    chapters: [],
   },
   {
-    id: 'anahi',
+    legacyId: 'anahi',
     title: 'Anahí',
     file: 'cardbook-Anahi.jpg',
     moods: ['Mata'],
     line: 'Uma mulher numa canoa, machado às costas, rio e pinheiros na luz baixa.',
-    chapters: [],
   },
   {
-    id: 'morro',
+    legacyId: 'morro',
     title: 'Morro do Diabo',
     file: 'cardbook-Morro-do-Diabo.jpg',
     moods: ['Sertão'],
     line: 'Um paredão de pedra acima do rio, caminho de gente pequena e céu de fim de tarde.',
-    chapters: [],
   },
   {
-    id: 'ancestrais',
+    legacyId: 'ancestrais',
     title: 'Ancestrais',
     file: 'cardbook-Ancestrais.jpg',
     moods: ['Mito', 'Mata'],
     line: 'Um besouro enorme atravessa a cachoeira. Lá embaixo, viajantes cabem na escala da pata.',
-    chapters: [],
   },
   {
-    id: 'antes',
+    legacyId: 'antes',
     title: 'Antes de Tudo',
     file: 'cardbook-Antes de Tudo.png',
     moods: ['Mito'],
     line: 'Uma nebulosa. Poeira e estrela, antes de haver chão.',
-    chapters: [],
   },
   {
-    id: 'ultima',
+    legacyId: 'ultima',
     title: 'A última de sua geração',
     file: 'cardbook-A-última-da-geração.jpeg',
     moods: ['Mata'],
     line: 'Anahí, ainda criança entre os Yukopás, segue um lagarto até o rio. O dia não acaba em brincadeira.',
-    chapters: writtenChapters('ultima'),
   },
   {
-    id: 'babu',
+    legacyId: 'babu',
     title: 'Babu',
     file: 'cardbook-Babu.jpg',
     moods: ['Mata'],
     line: 'Um homem de terno branco num trapiche, rio verde e mata fechada atrás do riso.',
-    chapters: [],
   },
   {
-    id: 'caramuru',
+    legacyId: 'caramuru',
     title: 'Caramuru',
     file: 'cardbook-Caramuru.jpg',
     moods: ['Mata'],
     line: 'Um homem de chapéu largo acende o cachimbo encostado numa casa, com ocas ao fundo.',
-    chapters: [],
   },
   {
-    id: 'gods',
+    legacyId: 'gods',
     title: 'Gods Games',
     file: 'cardbook-Gods games.jpg',
     moods: ['Mito'],
     line: 'Exércitos e penhascos sob uma lua enorme.',
-    chapters: [],
   },
   {
-    id: 'xipaia',
+    legacyId: 'xipaia',
     title: 'Xipaia',
     file: 'cardbook-Xipaia.jpeg',
     moods: ['Cidade'],
     line: 'A cidade de Cogaua: feiras, areia e gente demais para caber numa rua só.',
-    chapters: [],
   },
   {
-    id: 'damato',
+    legacyId: 'damato',
     title: 'Damato',
     moods: [],
     line: 'O nome já está no conjunto. O capítulo ainda não foi escrito no arquivo.',
-    chapters: [],
   },
   {
-    id: 'batalha',
+    legacyId: 'batalha',
     title: 'Batalha dos Espólios',
     moods: [],
     line: 'O nome já está no conjunto. O capítulo ainda não foi escrito no arquivo.',
-    chapters: [],
   },
 ]
+
+function asChapter(source, index) {
+  const written = chapters[source.legacyId]
+  const id = written?.id || source.legacyId
+  return {
+    id,
+    legacyWorkId: source.legacyId,
+    sourceKey: written ? `${source.legacyId}:${written.id}` : null,
+    number: index + 1,
+    name: source.title,
+    title: written?.title || source.title,
+    file: source.file,
+    moods: source.moods,
+    line: source.line,
+    paragraphs: written?.paragraphs ?? [],
+    note: written?.note ?? '',
+  }
+}
+
+export const WORKS = [
+  {
+    id: 'terras',
+    title: 'Terras Invisíveis',
+    file: 'cardbook.jpg',
+    line: 'Xipaia, a mata e o que a areia esconde. Os capítulos desta terra.',
+    moods: [],
+    chapters: CHAPTER_SOURCES.map(asChapter),
+  },
+]
+
+export const LEGACY_WORKS = Object.fromEntries(
+  CHAPTER_SOURCES.map((source) => {
+    const written = chapters[source.legacyId]
+    return [source.legacyId, { workId: 'terras', chapterId: written?.id || source.legacyId }]
+  }),
+)
+
+export function legacyRead(workId, chapterId) {
+  const hit = LEGACY_WORKS[workId]
+  if (!hit) return null
+  if (chapterId && chapterId !== hit.chapterId) return null
+  return hit
+}
 
 export function withCover(work) {
   return { ...work, cover: work.file ? cover(work.file) : null }
@@ -166,4 +186,4 @@ export function listWorks() {
   return WORKS.map(withCover)
 }
 
-export const FIRST_READ = { workId: 'lazaro', chapterId: 'lenda' }
+export const FIRST_READ = { workId: 'terras', chapterId: 'lenda' }

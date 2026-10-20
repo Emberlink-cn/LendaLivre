@@ -1,8 +1,22 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useAuth } from './AuthContext'
 
+const DEMO_INVENTORY_IDS = ['user_nara', 'user_criador']
+const DEMO_RESET_MARK = 'lendalivre_demo_inventory_reset'
+
 function storageKey(userId) {
   return `lendalivre_inventory_${userId || 'visitante'}`
+}
+
+function resetDemoInventories() {
+  try {
+    if (localStorage.getItem(DEMO_RESET_MARK) === '1') return false
+    for (const id of DEMO_INVENTORY_IDS) localStorage.removeItem(storageKey(id))
+    localStorage.setItem(DEMO_RESET_MARK, '1')
+    return true
+  } catch {
+    return false
+  }
 }
 
 function load(userId) {
@@ -22,12 +36,21 @@ export function InventoryProvider({ children }) {
   const { user } = useAuth()
   const userId = user?.id ?? 'visitante'
   const [activeUserId, setActiveUserId] = useState(userId)
-  const [items, setItems] = useState(() => load(userId))
+  const [items, setItems] = useState(() => {
+    const reset = resetDemoInventories()
+    if (reset && DEMO_INVENTORY_IDS.includes(userId)) return []
+    return load(userId)
+  })
 
   if (userId !== activeUserId) {
     setActiveUserId(userId)
     setItems(load(userId))
   }
+
+  useEffect(() => {
+    if (!resetDemoInventories()) return
+    if (DEMO_INVENTORY_IDS.includes(activeUserId)) setItems([])
+  }, [activeUserId])
 
   useEffect(() => {
     localStorage.setItem(storageKey(activeUserId), JSON.stringify(items))

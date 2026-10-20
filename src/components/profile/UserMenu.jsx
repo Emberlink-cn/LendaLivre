@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import { Avatar } from '../common/Marks'
@@ -9,6 +9,7 @@ export default function UserMenu({ variant = 'bar', onNavigate }) {
   const { user, logout, isSuper } = useAuth()
   const { theme, setTheme } = useTheme()
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const [openPath, setOpenPath] = useState(null)
   const wrapRef = useRef(null)
   const open = openPath === pathname
@@ -28,6 +29,12 @@ export default function UserMenu({ variant = 'bar', onNavigate }) {
       window.removeEventListener('pointerdown', onPointer)
     }
   }, [open])
+
+  function leave() {
+    logout()
+    onNavigate?.()
+    navigate('/entrar')
+  }
 
   if (variant === 'list') {
     return (
@@ -56,10 +63,7 @@ export default function UserMenu({ variant = 'bar', onNavigate }) {
         <button
           type="button"
           className={styles.drawerLink}
-          onClick={() => {
-            logout()
-            onNavigate?.()
-          }}
+          onClick={leave}
         >
           Sair
         </button>
@@ -99,7 +103,7 @@ export default function UserMenu({ variant = 'bar', onNavigate }) {
           <button type="button" role="menuitem" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
             Tema {theme === 'dark' ? 'claro' : 'escuro'}
           </button>
-          <button type="button" role="menuitem" onClick={logout}>
+          <button type="button" role="menuitem" onClick={leave}>
             Sair
           </button>
         </div>

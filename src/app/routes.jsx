@@ -16,6 +16,7 @@ export function AppRoutes() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/catalogo" element={<CatalogPage />} />
+        <Route path="/obra/:workId/:chapterId" element={<WorkPage />} />
         <Route path="/obra/:workId" element={<WorkPage />} />
         <Route path="/ler/:workId/:chapterId" element={<ReadPage />} />
         <Route path="/perfil" element={<ProfilePage />} />

@@ -1,3 +1,11 @@
+.flight {
+  position: fixed;
+  z-index: 46;
+  width: 16rem;
+  pointer-events: none;
+  cursor: default;
+}
+
 .toolMenu {
   position: relative;
 }

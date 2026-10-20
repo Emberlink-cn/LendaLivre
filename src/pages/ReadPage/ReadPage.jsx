@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useLayoutEffect } from 'react'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import ReadTools from '../../components/read/ReadTools'
 import { useLibrary } from '../../context/LibraryContext'
+import { legacyRead } from '../../data/catalog'
 import { useReading } from '../../context/ReadingContext'
 import styles from './ReadPage.module.css'
 
@@ -43,6 +44,7 @@ function ChapterBody({ paragraphs }) {
 export default function ReadPage() {
   const { workId, chapterId } = useParams()
   const { getWork } = useLibrary()
+  const legacy = getWork(workId) ? null : legacyRead(workId, chapterId)
   const work = getWork(workId)
   const chapter = work?.chapters.find((item) => item.id === chapterId) ?? null
   const { fontScale, remember } = useReading()
@@ -51,9 +53,15 @@ export default function ReadPage() {
     document.title = chapter ? `${chapter.title} · LendaLivre` : 'Leitura · LendaLivre'
   }, [chapter])
 
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0)
+  }, [workId, chapterId])
+
   useEffect(() => {
     if (workId && chapterId) remember(workId, chapterId)
   }, [workId, chapterId, remember])
+
+  if (legacy) return <Navigate to={`/ler/${legacy.workId}/${legacy.chapterId}`} replace />
 
   if (!work || !chapter) {
     return (
@@ -74,7 +82,7 @@ export default function ReadPage() {
       <p className={styles.kicker}>
         <Link to={`/obra/${work.id}`}>{work.title}</Link>
         <span>
-          Capítulo {index + 1} de {work.chapters.length}
+          Capítulo {chapter.number || index + 1} de {work.chapters.length}
         </span>
       </p>
       {chapter.note ? <p className={styles.note}>{chapter.note}</p> : null}

@@ -130,4 +130,43 @@
     position: sticky;
     top: calc(var(--header) + 1rem);
   }
+
+  .locked {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .locked .layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-items: stretch;
+  }
+
+  .locked .cover,
+  .locked .coverFallback {
+    position: static;
+    align-self: stretch;
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    aspect-ratio: auto;
+  }
+
+  .locked .panel {
+    min-height: 0;
+    height: 100%;
+    grid-template-rows: auto auto auto auto minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .locked .chapters {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding-right: 0.2rem;
+  }
 }

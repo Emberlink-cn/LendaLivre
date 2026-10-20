@@ -14,6 +14,8 @@
   --header-bg: rgba(7, 8, 11, 0.28);
   --header-solid: rgba(7, 8, 11, 0.72);
   --on-ink: #14120e;
+  --overlay: rgba(7, 8, 11, 0.72);
+  --panel: rgba(12, 14, 18, 0.96);
   --shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
   --serif: 'Newsreader', 'Iowan Old Style', Georgia, serif;
   --sans: 'Outfit', 'Avenir Next', 'Segoe UI', sans-serif;
@@ -45,6 +47,8 @@
   --header-bg: rgba(244, 239, 230, 0.5);
   --header-solid: rgba(244, 239, 230, 0.9);
   --on-ink: #f7f3ea;
+  --overlay: rgba(28, 25, 21, 0.38);
+  --panel: rgba(255, 250, 243, 0.98);
   --shadow: 0 24px 60px rgba(60, 40, 10, 0.12);
   color-scheme: light;
 }

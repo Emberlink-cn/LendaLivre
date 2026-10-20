@@ -1,4 +1,4 @@
-import { cloneElement, isValidElement, useEffect, useRef, useState } from 'react'
+import { cloneElement, isValidElement, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link } from 'react-router-dom'
 import { normalizeWord } from '../../data/collectibles'
@@ -6,6 +6,8 @@ import { useInventory } from '../../context/InventoryContext'
 import { useTheme } from '../../context/ThemeContext'
 import { useReadToolsSlot } from '../layout/Shell'
 import { ItemVisual } from '../common/Marks'
+import { Card, CardBack } from '../card/Card'
+import { faceStats, presentCard } from '../../data/cardTraits'
 import styles from './ReadTools.module.css'
 
 const PAPER_KEY = 'lendalivre_reading_paper'
@@ -272,10 +274,76 @@ function PanelBody({ tool, items, tracks, work, chapter, onClose }) {
   )
 }
 
+function CollectFlight({ item, workTitle, onDone }) {
+  const card = presentCard(item)
+  const ref = useRef(null)
+  const doneRef = useRef(onDone)
+  const [face, setFace] = useState(false)
+
+  useLayoutEffect(() => {
+    doneRef.current = onDone
+  }, [onDone])
+
+  useLayoutEffect(() => {
+    const node = ref.current
+    if (!node) return undefined
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      doneRef.current()
+      return undefined
+    }
+    const width = Math.min(256, window.innerWidth * 0.7)
+    node.style.transition = 'none'
+    node.style.width = `${width}px`
+    node.style.left = `${(window.innerWidth - width) / 2}px`
+    node.style.top = `${Math.max(24, (window.innerHeight - width * 1.4) / 2)}px`
+    const frame = requestAnimationFrame(() => {
+      node.style.transition = 'left .7s ease, top .7s ease, width .7s ease, opacity .7s ease'
+    })
+    const reveal = window.setTimeout(() => setFace(true), 720)
+    const fly = window.setTimeout(() => {
+      const badge = document.querySelector('[data-collect-badge]')
+      const target = badge?.getBoundingClientRect()
+      if (target) {
+        const next = Math.max(42, target.height * (5 / 7))
+        node.style.left = `${target.left + target.width / 2 - next / 2}px`
+        node.style.top = `${target.top}px`
+        node.style.width = `${next}px`
+      }
+      node.style.opacity = '0'
+    }, 1620)
+    const done = window.setTimeout(() => doneRef.current(), 2360)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.clearTimeout(reveal)
+      window.clearTimeout(fly)
+      window.clearTimeout(done)
+    }
+  }, [])
+
+  return createPortal(
+    <div ref={ref} className={`tcg-flip ${styles.flight} ${face ? '' : 'is-back'}`} aria-hidden="true">
+      <div className="tcg-flip__in">
+        <Card
+          title={card.name}
+          image={card.image}
+          fallback={<ItemVisual item={card} />}
+          type={card.type}
+          origin={workTitle}
+          color={card.frame}
+          stats={faceStats(card)}
+        />
+        <CardBack rev text={workTitle} color={card.frame} />
+      </div>
+    </div>,
+    document.body,
+  )
+}
+
 function CollectForm({ items, work, chapter }) {
   const { collect, has, items: collected } = useInventory()
   const [query, setQuery] = useState('')
   const [found, setFound] = useState(undefined)
+  const [flight, setFlight] = useState(null)
   const recent = [...collected].reverse().slice(0, 6)
 
   function search(event) {
@@ -309,12 +377,7 @@ function CollectForm({ items, work, chapter }) {
           {has(found.id) ? (
             <Link to="/inventario">No inventário</Link>
           ) : (
-            <button
-              type="button"
-              onClick={() =>
-                collect(found, { workTitle: work.title, chapterTitle: chapter.title })
-              }
-            >
+            <button type="button" disabled={Boolean(flight)} onClick={() => setFlight(found)}>
               Coletar
             </button>
           )}
@@ -341,6 +404,16 @@ function CollectForm({ items, work, chapter }) {
         </ul>
       )}
     </section>
+    {flight ? (
+      <CollectFlight
+        item={flight}
+        workTitle={work.title}
+        onDone={() => {
+          collect(flight, { workTitle: work.title, chapterTitle: chapter.title })
+          setFlight(null)
+        }}
+      />
+    ) : null}
     </>
   )
 }

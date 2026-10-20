@@ -16,12 +16,16 @@ Leitura pública. Conta, assinatura, inventário e ranking esperam capítulos pu
 | Camada | Tecnologia |
 |---|---|
 | Front | React + Vite, responsivo (celular e desktop) |
+| Site | Cloudflare Pages, a partir do build do Vite |
+| Banco, conta e API | Supabase (Postgres). Plano gratuito para o teste com amigos |
+| Arquivos | Capas locais agora; Cloudflare R2 quando as imagens pesadas forem publicadas |
 | Texto | Capítulos em dados locais agora; Markdown no repositório no passo seguinte |
-| Conta | Ainda só no navegador, sem servidor. Não protege conteúdo |
-| Banco, Railway, Cloudflare | Quando houver texto a publicar de verdade e cadastro real |
+| Conta hoje | Ainda só no navegador. O Supabase entra no lugar disso, e não protege conteúdo antes disso |
 | Pagamentos | Fora desta fase |
 
-Mobile é o layout responsivo. PWA e lojas vêm depois, se fizer sentido. Capítulos gratuitos, no futuro, precisam de HTML indexável (pré-render). Trocar o Vite por outro framework fica para quando existir texto que valha ser achado na busca.
+O projeto gratuito do Supabase pausa depois de uma semana sem uso e volta ao abrir de novo no painel. O limite gratuito é de dois projetos ativos, com 500 MB de banco.
+
+Mobile é o layout responsivo. O manifesto PWA já permite instalar o site na tela inicial. Loja de aplicativo fica para depois. Capítulos gratuitos, no futuro, precisam de HTML indexável (pré-render). Trocar o Vite por outro framework fica para quando existir texto que valha ser achado na busca.
 
 ## 3. Identidade da interface
 
@@ -61,7 +65,9 @@ Seis obras abrem o texto escrito: Lázaro, Os Portões da Areia, Bamboo, Couro e
 - [ ] Painel simples para publicar capítulo
 - [ ] Capítulos gratuitos e, só então, capítulos para assinantes
 - [ ] Privacidade e consentimento no primeiro cadastro real
-- [ ] Deploy e domínio
+- [ ] Publicar o site no Cloudflare Pages
+- [ ] Ligar conta, capítulos e inventário ao Supabase
+- [ ] Domínio
 
 ### Coleta (fase seguinte do app)
 
@@ -96,5 +102,5 @@ Amigos, conquistas e assinatura entram nas tabelas só na fase em que a tela exi
 
 - Coleta e “posição no ranking” só com regra no servidor.
 - Imagens pesadas (há capas com mais de 2 MB) precisam de versão leve antes do lançamento. WebP no Cloudflare R2 quando houver hospedagem de arquivo.
-- Backup do Postgres no dia em que o banco existir.
+- Backup do Postgres no Supabase no dia em que o banco estiver em uso.
 - A interface não publica contato pessoal nem chave Pix.

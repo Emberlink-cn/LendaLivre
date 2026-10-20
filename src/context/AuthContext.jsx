@@ -22,6 +22,7 @@ function hydrate(user) {
     avatar: user.avatar || demo?.avatar || 'leaf',
     level: user.level ?? demo?.level ?? 1,
     rank: user.rank || demo?.rank || 'Leitor',
+    since: user.since || demo?.since || null,
   }
 }
 
@@ -70,6 +71,7 @@ export function AuthProvider({ children }) {
       avatar: 'leaf',
       level: 1,
       rank: 'Leitor',
+      since: new Date().toISOString(),
     }
     setUsers((current) => [...current, next])
     setUser(next)
@@ -92,6 +94,7 @@ export function AuthProvider({ children }) {
       avatar: 'leaf',
       level: 1,
       rank: 'Leitor',
+      since: new Date().toISOString(),
     }
     setUsers((current) => [...current, next])
     setUser(next)

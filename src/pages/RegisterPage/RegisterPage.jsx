@@ -14,7 +14,7 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    document.title = 'Criar conta · LendaLivre'
+    document.title = 'Criar conta grátis · LendaLivre'
   }, [])
 
   useEffect(() => {
@@ -38,10 +38,10 @@ export default function RegisterPage() {
   return (
     <section className={styles.wrap}>
       <form className={styles.card} onSubmit={handleSubmit}>
-        <p className={styles.eyebrow}>Conta</p>
-        <h1>Criar conta</h1>
+        <p className={styles.eyebrow}>Leitor</p>
+        <h1>Criar conta grátis</h1>
         <p className={styles.note}>
-          Guarda o nome neste navegador. Ainda não há cadastro num servidor nem coleta de dados fora daqui.
+          A conta de leitor guarda nome, e-mail e senha neste navegador. A leitura continua aberta. O cadastro num servidor entra com o banco.
         </p>
         <label>
           Nome
@@ -76,7 +76,7 @@ export default function RegisterPage() {
         </label>
         {error ? <p className={styles.error}>{error}</p> : null}
         <button type="submit" className={styles.submit} disabled={loading}>
-          {loading ? 'Criando…' : 'Criar conta'}
+          {loading ? 'Criando…' : 'Criar conta grátis'}
         </button>
         <p className={styles.switch}>
           Já tem conta? <Link to="/entrar">Entrar</Link>

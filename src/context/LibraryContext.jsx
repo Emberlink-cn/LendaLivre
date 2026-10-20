@@ -2,6 +2,13 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { BASE_ITEMS, BASE_MUSIC } from '../data/collectibles'
 import { listWorks } from '../data/catalog'
 
+function findSourceKey(library, workId, chapterId) {
+  const base = listWorks().find((work) => work.id === workId)
+  const local = library.works.find((work) => work.id === workId)
+  const known = [...(base?.chapters ?? []), ...(local?.chapters ?? [])].find((chapter) => chapter.id === chapterId)
+  return known?.sourceKey || `${workId}:${chapterId}`
+}
+
 function coverUrl(file) {
   return `/midias/catalog-page/livros/${encodeURIComponent(file)}`
 }
@@ -46,28 +53,44 @@ function resolveItems(key, extra) {
     .filter((item) => !removed.has(item.id))
 }
 
-function buildChapter(work, chapterId, extra = {}) {
-  if (extra.removed) return null
-  const key = `${work.id}:${chapterId}`
+function buildChapter(work, chapterId, chaptersStore, workPatches) {
   const base = (work.chapters ?? []).find((chapter) => chapter.id === chapterId) ?? {
     id: chapterId,
-    title: work.title,
+    title: 'Capítulo',
+    name: 'Capítulo',
     paragraphs: [],
+    moods: [],
+    number: 0,
   }
+  const key = base.sourceKey || `${work.id}:${chapterId}`
+  const extra = chaptersStore[key] ?? {}
+  if (extra.removed) return null
+  const meta = extra.meta ?? {}
   const text = extra.text ?? {}
+  const legacyMoods = base.legacyWorkId ? workPatches?.[base.legacyWorkId]?.moods : null
+  const moods = Array.isArray(meta.moods) ? meta.moods : Array.isArray(legacyMoods) ? legacyMoods : base.moods ?? []
+  const file = meta.file || base.file
+  const cover = meta.cover || (file ? coverUrl(file) : base.cover || null)
   const tracks = resolveTracks(key, extra)
+  const number = Number(meta.number ?? base.number)
   return {
     ...base,
-    title: text.title || base.title,
-    paragraphs: text.paragraphs ?? base.paragraphs,
-    note: text.note ?? base.note,
+    title: text.title || meta.title || base.title,
+    name: meta.name || base.name || text.title || base.title,
+    number: Number.isFinite(number) && number > 0 ? number : 0,
+    line: meta.line ?? base.line ?? '',
+    moods,
+    file,
+    cover,
+    paragraphs: text.paragraphs ?? base.paragraphs ?? [],
+    note: text.note ?? base.note ?? '',
     items: resolveItems(key, extra),
     tracks,
     music: tracks[0] ?? null,
   }
 }
 
-function decorate(work, chapters) {
+function decorate(work, chapters, workPatches) {
   const prefix = `${work.id}:`
   const ids = (work.chapters ?? []).map((chapter) => chapter.id)
   for (const key of Object.keys(chapters)) {
@@ -75,10 +98,16 @@ function decorate(work, chapters) {
     const chapterId = key.slice(prefix.length)
     if (chapterId && !ids.includes(chapterId)) ids.push(chapterId)
   }
+  const built = ids
+    .map((chapterId) => buildChapter(work, chapterId, chapters, workPatches))
+    .filter(Boolean)
+    .sort((a, b) => (a.number || 999) - (b.number || 999) || a.name.localeCompare(b.name, 'pt'))
+  const moods = [...new Set(built.flatMap((chapter) => chapter.moods))]
   return {
     ...work,
-    cover: work.file ? coverUrl(work.file) : work.cover || null,
-    chapters: ids.map((chapterId) => buildChapter(work, chapterId, chapters[`${work.id}:${chapterId}`])).filter(Boolean),
+    moods: moods.length ? moods : work.moods,
+    cover: work.cover || (work.file ? coverUrl(work.file) : null),
+    chapters: built,
   }
 }
 
@@ -95,11 +124,17 @@ export function LibraryProvider({ children }) {
     () =>
       [
         ...listWorks().map((work) => {
-          const moods = library.workPatches?.[work.id]?.moods
-          return { ...work, source: 'base', moods: Array.isArray(moods) ? moods : work.moods }
+          const patch = library.workPatches?.[work.id] ?? {}
+          return {
+            ...work,
+            source: 'base',
+            title: patch.title || work.title,
+            line: patch.line ?? work.line,
+            cover: patch.cover || (work.file ? coverUrl(work.file) : work.cover || null),
+          }
         }),
         ...library.works.map((work) => ({ ...work, source: 'local' })),
-      ].map((work) => decorate(work, library.chapters)),
+      ].map((work) => decorate(work, library.chapters, library.workPatches)),
     [library],
   )
 
@@ -107,6 +142,71 @@ export function LibraryProvider({ children }) {
 
   const addWork = useCallback((work) => {
     setLibrary((current) => ({ ...current, works: [...current.works, work] }))
+  }, [])
+
+  const updateWorkDetails = useCallback((workId, details) => {
+    setLibrary((current) => {
+      if (current.works.some((work) => work.id === workId)) {
+        return {
+          ...current,
+          works: current.works.map((work) => (work.id === workId ? { ...work, ...details } : work)),
+        }
+      }
+      return {
+        ...current,
+        workPatches: {
+          ...(current.workPatches ?? {}),
+          [workId]: { ...(current.workPatches?.[workId] ?? {}), ...details },
+        },
+      }
+    })
+  }, [])
+
+  const updateChapterMeta = useCallback((workId, chapterId, meta) => {
+    setLibrary((current) => {
+      const key = findSourceKey(current, workId, chapterId)
+      const chapter = current.chapters[key] ?? {}
+      return {
+        ...current,
+        chapters: {
+          ...current.chapters,
+          [key]: { ...chapter, meta: { ...(chapter.meta ?? {}), ...meta } },
+        },
+      }
+    })
+  }, [])
+
+  const addChapter = useCallback((workId, chapter) => {
+    setLibrary((current) => {
+      const key = `${workId}:${chapter.id}`
+      const stored = {
+        ...(current.chapters[key] ?? {}),
+        text: {
+          title: chapter.title,
+          paragraphs: chapter.paragraphs ?? [],
+          note: chapter.note ?? '',
+        },
+        meta: {
+          name: chapter.name || chapter.title,
+          title: chapter.title,
+          number: chapter.number,
+          line: chapter.line ?? '',
+          moods: chapter.moods ?? [],
+          cover: chapter.cover || '',
+        },
+      }
+      const ownsWork = current.works.some((work) => work.id === workId)
+      if (ownsWork) {
+        return {
+          ...current,
+          works: current.works.map((work) =>
+            work.id === workId ? { ...work, chapters: [...(work.chapters ?? []), { ...chapter, sourceKey: null }] } : work,
+          ),
+          chapters: { ...current.chapters, [key]: stored },
+        }
+      }
+      return { ...current, chapters: { ...current.chapters, [key]: stored } }
+    })
   }, [])
 
   const updateWorkMoods = useCallback((workId, moods) => {
@@ -128,8 +228,8 @@ export function LibraryProvider({ children }) {
   }, [])
 
   const addItem = useCallback((workId, chapterId, item) => {
-    const key = `${workId}:${chapterId}`
     setLibrary((current) => {
+      const key = findSourceKey(current, workId, chapterId)
       const chapter = current.chapters[key] ?? { items: [] }
       return {
         ...current,
@@ -142,8 +242,8 @@ export function LibraryProvider({ children }) {
   }, [])
 
   const patchChapter = useCallback((workId, chapterId, recipe) => {
-    const key = `${workId}:${chapterId}`
     setLibrary((current) => {
+      const key = findSourceKey(current, workId, chapterId)
       const chapter = current.chapters[key] ?? { items: [] }
       return {
         ...current,
@@ -160,8 +260,8 @@ export function LibraryProvider({ children }) {
   }, [patchChapter])
 
   const removeChapter = useCallback((workId, chapterId) => {
-    const key = `${workId}:${chapterId}`
     setLibrary((current) => {
+      const key = findSourceKey(current, workId, chapterId)
       const ownsWork = current.works.some((work) => work.id === workId)
       if (ownsWork) {
         const chapters = { ...current.chapters }
@@ -258,6 +358,9 @@ export function LibraryProvider({ children }) {
       works,
       getWork,
       addWork,
+      updateWorkDetails,
+      updateChapterMeta,
+      addChapter,
       updateWorkMoods,
       addItem,
       setChapterText,
@@ -268,7 +371,7 @@ export function LibraryProvider({ children }) {
       updateTrack,
       removeTrack,
     }),
-    [works, getWork, addWork, updateWorkMoods, addItem, setChapterText, removeChapter, updateItem, removeItem, addTrack, updateTrack, removeTrack],
+    [works, getWork, addWork, updateWorkDetails, updateChapterMeta, addChapter, updateWorkMoods, addItem, setChapterText, removeChapter, updateItem, removeItem, addTrack, updateTrack, removeTrack],
   )
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>

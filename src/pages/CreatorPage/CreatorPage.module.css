@@ -202,6 +202,13 @@
   box-shadow: var(--shadow);
 }
 
+.choiceMenu {
+  position: fixed;
+  z-index: 50;
+  right: auto;
+  top: auto;
+}
+
 .card button.typeOption,
 .card button.typeOn {
   display: flex;
@@ -309,6 +316,33 @@
   white-space: nowrap;
 }
 
+.listTitle {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.chapterList {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chapterLine {
+  display: grid;
+  grid-template-columns: 5.2rem minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: end;
+}
+
+.numberField {
+  display: grid;
+  gap: 0.2rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
 @media (max-width: 859px) {
   .listHead .count {
     margin-left: auto;
@@ -353,6 +387,32 @@
   white-space: nowrap;
 }
 
+.traits {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.traitGrid,
+.statGrid {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.traitGrid {
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+}
+
+.statGrid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.traitNote {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .composeActions {
   display: flex;
   flex-wrap: nowrap;
@@ -364,6 +424,127 @@
 .rowOn {
   border-radius: 12px;
   background: rgba(226, 177, 90, 0.08);
+}
+
+.itemRow {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  cursor: pointer;
+}
+
+.rowHit {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.attrLine {
+  display: none;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rows .attrLine li {
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  min-width: 2.5rem;
+  padding: 0.15rem 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+}
+
+.attrLine b {
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.1;
+}
+
+.attrLine span {
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+}
+
+.addItem {
+  flex: 0 0 auto;
+}
+
+.itemModal {
+  position: fixed;
+  z-index: 40;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1.2rem;
+  background: var(--overlay);
+}
+
+.itemModalPanel {
+  display: grid;
+  grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
+  gap: 1.25rem;
+  width: min(68rem, 100%);
+  max-height: min(48rem, calc(100svh - 2.4rem));
+  padding: 1.2rem;
+  overflow: auto;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.itemModalCard {
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.itemModalForm.card {
+  align-content: start;
+  grid-template-columns: 1fr 1fr;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+.itemModalForm h2 {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 1.7rem;
+}
+
+.span2 {
+  grid-column: 1 / -1;
+}
+
+
+@media (min-width: 980px) {
+  .rowHit {
+    grid-template-columns: auto minmax(9rem, 1.2fr) auto;
+  }
+
+  .attrLine {
+    display: flex;
+  }
+}
+
+@media (max-width: 800px) {
+  .itemModalPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .itemModalCard {
+    max-width: 16rem;
+  }
+
+  .itemModalForm.card {
+    grid-template-columns: 1fr;
+  }
 }
 
 .pick,
@@ -495,6 +676,12 @@ a.pick {
   .head .lead {
     grid-column: 1 / -1;
     grid-row: 2;
+  }
+}
+
+@media (max-width: 720px) {
+  .statGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
