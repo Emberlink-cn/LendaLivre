@@ -258,7 +258,7 @@ function AtmosphereField({ value, onChange }) {
 }
 
 export default function CreatorPage() {
-  const { isAuthenticated, isSuper } = useAuth()
+  const { isAuthenticated, isSuper, ready } = useAuth()
   const library = useLibrary()
   const navigate = useNavigate()
   const splat = useParams()['*'] ?? ''
@@ -280,15 +280,13 @@ export default function CreatorPage() {
     document.title = 'Criador · LendaLivre'
   }, [])
 
+  if (!ready) return null
   if (!isAuthenticated) return <Navigate to="/entrar" replace state={{ from: { pathname: '/criador' } }} />
   if (!isSuper) {
     return (
       <div className={styles.page}>
         <h1>Painel do criador</h1>
         <p>Esta sala é só da conta de criador.</p>
-        <p>
-          Demonstração: criador@lendalivre.app / lenda123. <Link to="/entrar">Entrar</Link>
-        </p>
       </div>
     )
   }

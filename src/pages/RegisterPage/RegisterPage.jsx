@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import styles from '../LoginPage/AuthPage.module.css'
 
 export default function RegisterPage() {
-  const { register, isAuthenticated } = useAuth()
+  const { register, isAuthenticated, ready } = useAuth()
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -18,8 +18,8 @@ export default function RegisterPage() {
   }, [])
 
   useEffect(() => {
-    if (isAuthenticated) navigate('/catalogo', { replace: true })
-  }, [isAuthenticated, navigate])
+    if (ready && isAuthenticated) navigate('/catalogo', { replace: true })
+  }, [ready, isAuthenticated, navigate])
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -41,7 +41,7 @@ export default function RegisterPage() {
         <p className={styles.eyebrow}>Leitor</p>
         <h1>Criar conta grátis</h1>
         <p className={styles.note}>
-          A conta de leitor guarda nome, e-mail e senha neste navegador. A leitura continua aberta. O cadastro num servidor entra com o banco.
+          A conta vale neste site e nos outros aparelhos. A leitura continua aberta.
         </p>
         <label>
           Nome

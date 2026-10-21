@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { DEMO_USERS } from '../../data/demoUsers'
 import styles from './AuthPage.module.css'
 
 export default function LoginPage() {
-  const { login, isAuthenticated } = useAuth()
+  const { login, isAuthenticated, ready } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const from = location.state?.from?.pathname || '/catalogo'
@@ -19,8 +18,8 @@ export default function LoginPage() {
   }, [])
 
   useEffect(() => {
-    if (isAuthenticated) navigate(from, { replace: true })
-  }, [isAuthenticated, from, navigate])
+    if (ready && isAuthenticated) navigate(from, { replace: true })
+  }, [ready, isAuthenticated, from, navigate])
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -42,7 +41,7 @@ export default function LoginPage() {
         <p className={styles.eyebrow}>Conta</p>
         <h1>Entrar</h1>
         <p className={styles.note}>
-          A leitura é aberta. Esta conta ainda vive só neste navegador, até existir um servidor.
+          A leitura é aberta. A conta vale neste site e nos outros aparelhos.
         </p>
         <label>
           E-mail
@@ -69,23 +68,6 @@ export default function LoginPage() {
         <p className={styles.switch}>
           Ainda sem conta? <Link to="/criar-conta">Criar conta grátis</Link>
         </p>
-        <div className={styles.demos}>
-          <p>Contas de demonstração</p>
-          {DEMO_USERS.map((demo) => (
-            <button
-              key={demo.id}
-              type="button"
-              className={styles.demo}
-              onClick={() => {
-                setEmail(demo.email)
-                setPassword(demo.password)
-                setError('')
-              }}
-            >
-              {demo.role === 'super' ? 'Criador' : 'Leitora'}: {demo.email}
-            </button>
-          ))}
-        </div>
       </form>
     </section>
   )

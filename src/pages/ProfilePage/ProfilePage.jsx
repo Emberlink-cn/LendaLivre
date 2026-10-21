@@ -13,7 +13,7 @@ const FACES = [
 ]
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, updateProfile, changePassword } = useAuth()
+  const { user, isAuthenticated, ready, updateProfile, changePassword } = useAuth()
   const { theme, setTheme } = useTheme()
   const [draftUserId, setDraftUserId] = useState(user?.id ?? '')
   const [name, setName] = useState(user?.name ?? '')
@@ -34,24 +34,30 @@ export default function ProfilePage() {
     setAvatar(user.avatar || 'leaf')
   }
 
+  if (!ready) return null
   if (!isAuthenticated) return <Navigate to="/entrar" replace />
 
-  function saveProfile(event) {
+  async function saveProfile(event) {
     event.preventDefault()
     if (!name.trim()) return
-    updateProfile({ name: name.trim(), avatar })
-    setProfileMessage('Perfil atualizado neste navegador.')
+    setProfileMessage('')
+    try {
+      await updateProfile({ name: name.trim(), avatar })
+      setProfileMessage('Perfil atualizado.')
+    } catch (error) {
+      setProfileMessage(error.message)
+    }
   }
 
-  function savePassword(event) {
+  async function savePassword(event) {
     event.preventDefault()
     setPasswordError('')
     setPasswordMessage('')
     try {
-      changePassword(currentPassword, nextPassword)
+      await changePassword(currentPassword, nextPassword)
       setCurrentPassword('')
       setNextPassword('')
-      setPasswordMessage('Senha alterada neste navegador.')
+      setPasswordMessage('Senha alterada.')
     } catch (error) {
       setPasswordError(error.message)
     }
@@ -59,10 +65,10 @@ export default function ProfilePage() {
 
   return (
     <div className={styles.page}>
-      <p className={styles.eyebrow}>Conta fictícia</p>
+      <p className={styles.eyebrow}>Conta</p>
       <h1>Perfil</h1>
       <p className={styles.lead}>
-        Estes dados ficam só neste navegador. O servidor de contas entra depois.{' '}
+        Nome e avatar ficam na sua conta, neste site e nos outros aparelhos.{' '}
         <Link to="/inventario">Abrir inventário</Link>
       </p>
 

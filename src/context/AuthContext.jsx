@@ -1,82 +1,93 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { DEMO_USERS } from '../data/demoUsers'
-
-const USERS_KEY = 'lendalivre_users'
-const SESSION_KEY = 'lendalivre_auth_user'
-
-function readJson(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key)
-    if (!raw) return fallback
-    return JSON.parse(raw)
-  } catch {
-    return fallback
-  }
-}
-
-function hydrate(user) {
-  if (!user) return null
-  const demo = DEMO_USERS.find((item) => item.email === user.email)
-  return {
-    ...user,
-    avatar: user.avatar || demo?.avatar || 'leaf',
-    level: user.level ?? demo?.level ?? 1,
-    rank: user.rank || demo?.rank || 'Leitor',
-    since: user.since || demo?.since || null,
-  }
-}
-
-function loadUsers() {
-  const stored = readJson(USERS_KEY, null)
-  if (!Array.isArray(stored)) return DEMO_USERS
-  const byEmail = new Map(stored.map((user) => [user.email, user]))
-  for (const demo of DEMO_USERS) {
-    const existing = byEmail.get(demo.email)
-    if (!existing) byEmail.set(demo.email, demo)
-    else byEmail.set(demo.email, { ...demo, ...existing, level: existing.level ?? demo.level, rank: existing.rank ?? demo.rank })
-  }
-  return [...byEmail.values()]
-}
+import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext(null)
 
+function toAppUser(authUser, profile) {
+  return {
+    id: authUser.id,
+    name: profile?.display_name || authUser.email?.split('@')[0] || 'Leitor',
+    email: authUser.email,
+    role: profile?.role || 'leitor',
+    avatar: profile?.avatar || 'leaf',
+    level: profile?.level ?? 1,
+    rank: profile?.rank || 'Leitor',
+    since: profile?.created_at || authUser.created_at || null,
+  }
+}
+
+function authError(error, fallback) {
+  const message = error?.message || ''
+  if (/invalid login credentials/i.test(message)) return 'E-mail ou senha incorretos.'
+  if (/already registered|already been registered/i.test(message)) return 'Já existe uma conta com esse e-mail.'
+  if (/password/i.test(message) && /6|least/i.test(message)) return 'A senha deve ter pelo menos 6 caracteres.'
+  return fallback
+}
+
+async function fetchProfile(userId) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle()
+    if (error) throw new Error('Não foi possível abrir o perfil.')
+    if (data) return data
+    await new Promise((resolve) => window.setTimeout(resolve, 250))
+  }
+  return null
+}
+
 export function AuthProvider({ children }) {
-  const [users, setUsers] = useState(loadUsers)
-  const [user, setUser] = useState(() => hydrate(readJson(SESSION_KEY, null)))
+  const [user, setUser] = useState(null)
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    localStorage.setItem(USERS_KEY, JSON.stringify(users))
-  }, [users])
+    let ignore = false
 
-  useEffect(() => {
-    if (user) localStorage.setItem(SESSION_KEY, JSON.stringify(user))
-    else localStorage.removeItem(SESSION_KEY)
-  }, [user])
+    function applySession(session) {
+      if (!session?.user) {
+        if (!ignore) {
+          setUser(null)
+          setReady(true)
+        }
+        return
+      }
+      const authUser = session.user
+      window.setTimeout(() => {
+        fetchProfile(authUser.id)
+          .then((profile) => {
+            if (!ignore) setUser(toAppUser(authUser, profile))
+          })
+          .catch(() => {
+            if (!ignore) setUser(toAppUser(authUser, null))
+          })
+          .finally(() => {
+            if (!ignore) setReady(true)
+          })
+      }, 0)
+    }
+
+    supabase.auth.getSession().then(({ data }) => {
+      if (!ignore) applySession(data.session)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      applySession(session)
+    })
+
+    return () => {
+      ignore = true
+      subscription.unsubscribe()
+    }
+  }, [])
 
   const login = useCallback(async (email, password) => {
     const normalized = email?.trim().toLowerCase()
     if (!normalized || !password) throw new Error('Preencha e-mail e senha.')
-    const found = users.find((item) => item.email === normalized)
-    if (found) {
-      if (found.password !== password) throw new Error('Senha incorreta.')
-      setUser(hydrate(found))
-      return found
-    }
-    const next = {
-      id: `user_${Date.now()}`,
-      name: normalized.split('@')[0] || 'Leitor',
-      email: normalized,
-      password,
-      role: 'leitor',
-      avatar: 'leaf',
-      level: 1,
-      rank: 'Leitor',
-      since: new Date().toISOString(),
-    }
-    setUsers((current) => [...current, next])
+    const { data, error } = await supabase.auth.signInWithPassword({ email: normalized, password })
+    if (error) throw new Error(authError(error, 'Não foi possível entrar.'))
+    const profile = await fetchProfile(data.user.id)
+    const next = toAppUser(data.user, profile)
     setUser(next)
     return next
-  }, [users])
+  }, [])
 
   const register = useCallback(async (name, email, password, confirmPassword) => {
     if (!name?.trim()) throw new Error('Informe seu nome.')
@@ -84,40 +95,64 @@ export function AuthProvider({ children }) {
     if (!normalized) throw new Error('Informe seu e-mail.')
     if (!password || password.length < 6) throw new Error('A senha deve ter pelo menos 6 caracteres.')
     if (password !== confirmPassword) throw new Error('As senhas não conferem.')
-    if (users.some((item) => item.email === normalized)) throw new Error('Já existe uma conta com esse e-mail.')
-    const next = {
-      id: `user_${Date.now()}`,
-      name: name.trim(),
+    const { data, error } = await supabase.auth.signUp({
       email: normalized,
       password,
-      role: 'leitor',
-      avatar: 'leaf',
-      level: 1,
-      rank: 'Leitor',
-      since: new Date().toISOString(),
+      options: { data: { name: name.trim() } },
+    })
+    if (error) throw new Error(authError(error, 'Não foi possível criar a conta.'))
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      throw new Error('Já existe uma conta com esse e-mail.')
     }
-    setUsers((current) => [...current, next])
+    if (!data.session || !data.user) {
+      throw new Error('Confirme o e-mail para entrar. A confirmação está ligada no projeto.')
+    }
+    const profile = await fetchProfile(data.user.id)
+    const next = toAppUser(data.user, profile)
     setUser(next)
     return next
-  }, [users])
+  }, [])
 
-  const logout = useCallback(() => setUser(null), [])
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+  }, [])
 
-  const updateProfile = useCallback((patch) => {
-    setUser((current) => (current ? { ...current, ...patch } : current))
-    setUsers((list) => list.map((item) => (user && item.id === user.id ? { ...item, ...patch } : item)))
-  }, [user])
+  const updateProfile = useCallback(async (patch) => {
+    const { data: authData } = await supabase.auth.getUser()
+    const authUser = authData.user
+    if (!authUser) throw new Error('Entre para atualizar o perfil.')
+    const displayName = patch.name?.trim()
+    const nextAvatar = patch.avatar
+    const { error } = await supabase.from('profiles').update({
+      ...(displayName ? { display_name: displayName } : {}),
+      ...(nextAvatar ? { avatar: nextAvatar } : {}),
+    }).eq('id', authUser.id)
+    if (error) throw new Error('Não foi possível salvar o perfil.')
+    const profile = await fetchProfile(authUser.id)
+    const next = toAppUser(authUser, profile)
+    setUser(next)
+    return next
+  }, [])
 
-  const changePassword = useCallback((currentPassword, nextPassword) => {
-    if (!user) throw new Error('Entre para alterar a senha.')
-    if (user.password && user.password !== currentPassword) throw new Error('A senha atual não confere.')
+  const changePassword = useCallback(async (currentPassword, nextPassword) => {
+    const { data: authData } = await supabase.auth.getUser()
+    const authUser = authData.user
+    if (!authUser?.email) throw new Error('Entre para alterar a senha.')
     if (!nextPassword || nextPassword.length < 6) throw new Error('A nova senha deve ter pelo menos 6 caracteres.')
-    updateProfile({ password: nextPassword })
-  }, [updateProfile, user])
+    const { error: currentError } = await supabase.auth.signInWithPassword({
+      email: authUser.email,
+      password: currentPassword,
+    })
+    if (currentError) throw new Error('A senha atual não confere.')
+    const { error } = await supabase.auth.updateUser({ password: nextPassword })
+    if (error) throw new Error(authError(error, 'Não foi possível alterar a senha.'))
+  }, [])
 
   const value = useMemo(
     () => ({
       user,
+      ready,
       isAuthenticated: Boolean(user),
       isSuper: user?.role === 'super',
       login,
@@ -126,7 +161,7 @@ export function AuthProvider({ children }) {
       updateProfile,
       changePassword,
     }),
-    [user, login, register, logout, updateProfile, changePassword],
+    [user, ready, login, register, logout, updateProfile, changePassword],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
