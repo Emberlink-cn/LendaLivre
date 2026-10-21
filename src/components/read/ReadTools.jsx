@@ -344,6 +344,7 @@ function CollectForm({ items, work, chapter }) {
   const [query, setQuery] = useState('')
   const [found, setFound] = useState(undefined)
   const [flight, setFlight] = useState(null)
+  const [syncNote, setSyncNote] = useState('')
   const recent = [...collected].reverse().slice(0, 6)
 
   function search(event) {
@@ -365,6 +366,7 @@ function CollectForm({ items, work, chapter }) {
         <input value={query} onChange={(event) => setQuery(event.target.value)} />
       </label>
       <button type="submit">Procurar</button>
+      {syncNote ? <p className={styles.miss}>{syncNote}</p> : null}
       {found === undefined ? null : found === null ? (
         <p className={styles.miss}>Nenhum item com essa palavra neste capítulo.</p>
       ) : (
@@ -409,7 +411,13 @@ function CollectForm({ items, work, chapter }) {
         item={flight}
         workTitle={work.title}
         onDone={() => {
-          collect(flight, { workTitle: work.title, chapterTitle: chapter.title, chapterDbId: chapter.dbId })
+          Promise.resolve(
+            collect(flight, { workTitle: work.title, chapterTitle: chapter.title, chapterDbId: chapter.dbId }),
+          ).then((saved) => {
+            if (saved === 'local') setSyncNote('Essa coleta ficou neste aparelho. Entre na conta para ela aparecer no celular.')
+            else if (saved === false) setSyncNote('Não consegui guardar na conta. Tente de novo.')
+            else setSyncNote('')
+          })
           setFlight(null)
         }}
       />

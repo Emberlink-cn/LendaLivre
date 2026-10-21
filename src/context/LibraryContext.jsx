@@ -152,11 +152,19 @@ export function LibraryProvider({ children }) {
   useEffect(() => {
     if (!ready) return undefined
     let alive = true
-    loadRemoteWorks().then((next) => {
-      if (alive) setRemote(next)
-    })
+    function pull() {
+      loadRemoteWorks().then((next) => {
+        if (alive && next?.length) setRemote(next)
+      })
+    }
+    pull()
+    function onShow() {
+      if (document.visibilityState === 'visible') pull()
+    }
+    document.addEventListener('visibilitychange', onShow)
     return () => {
       alive = false
+      document.removeEventListener('visibilitychange', onShow)
     }
   }, [ready, user?.id])
 

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { mediaUrl } from '../lib/remoteCatalog'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
@@ -59,6 +59,38 @@ function cardFromRow(row) {
   }
 }
 
+const ITEM_COLUMNS =
+  'collected_at, items(id, name, word, type, rarity, atmosphere, frame, passive, energia, ataque, defesa, sorte, azar, image:media!items_image_id_fkey(bucket, path)), chapters(name, works(title))'
+
+function rememberedItems(userId) {
+  const own = load(userId)
+  if (userId === 'visitante') return own
+  const guest = load('visitante')
+  const seen = new Set(own.map((item) => item?.id).filter(Boolean))
+  return [...own, ...guest.filter((item) => item?.id && !seen.has(item.id))]
+}
+
+async function readAccountItems(accountId) {
+  const listed = await supabase.from('user_items').select(ITEM_COLUMNS).eq('user_id', accountId)
+  if (listed.error) return null
+  return (listed.data ?? []).map(cardFromRow).filter(Boolean)
+}
+
+async function storeAccountItem(accountId, item) {
+  const row = {
+    user_id: accountId,
+    item_id: item.id,
+    collected_at: item.collectedAt || new Date().toISOString(),
+  }
+  if (item.chapterDbId) row.chapter_id = item.chapterDbId
+  let result = await supabase.from('user_items').insert(row)
+  if (result.error?.code === '23503' && row.chapter_id) {
+    delete row.chapter_id
+    result = await supabase.from('user_items').insert(row)
+  }
+  return !result.error || result.error.code === '23505'
+}
+
 const InventoryContext = createContext(null)
 
 export function InventoryProvider({ children }) {
@@ -76,7 +108,10 @@ export function InventoryProvider({ children }) {
     setItems(load(userId))
   }
 
+  const itemsRef = useRef(items)
+
   useEffect(() => {
+    itemsRef.current = items
     localStorage.setItem(storageKey(activeUserId), JSON.stringify(items))
   }, [items, activeUserId])
 
@@ -84,31 +119,36 @@ export function InventoryProvider({ children }) {
     if (!ready || !user?.id) return undefined
     let alive = true
     const accountId = user.id
-    supabase
-      .from('user_items')
-      .select(
-        'collected_at, items(id, name, word, type, rarity, atmosphere, frame, passive, energia, ataque, defesa, sorte, azar, image:media!items_image_id_fkey(bucket, path)), chapters(name, works(title))',
-      )
-      .eq('user_id', accountId)
-      .then(({ data, error }) => {
-        if (!alive || error) return
-        const remoteCards = (data ?? []).map(cardFromRow).filter(Boolean)
-        const remoteIds = new Set(remoteCards.map((item) => item.id))
-        for (const item of load(accountId)) {
-          if (!item?.id || remoteIds.has(item.id)) continue
-          supabase.from('user_items').insert({
-            user_id: accountId,
-            item_id: item.id,
-            collected_at: item.collectedAt || new Date().toISOString(),
-          })
-        }
-        setItems((current) => {
-          const extras = current.filter((item) => item?.id && !remoteIds.has(item.id))
-          return [...remoteCards, ...extras]
-        })
+
+    async function sync() {
+      const remote = await readAccountItems(accountId)
+      if (!alive || !remote) return
+      const have = new Set(remote.map((item) => item.id))
+      const pending = [...itemsRef.current, ...rememberedItems(accountId)]
+      for (const item of pending) {
+        if (!item?.id || have.has(item.id)) continue
+        const saved = await storeAccountItem(accountId, item)
+        if (saved) have.add(item.id)
+      }
+      const fresh = await readAccountItems(accountId)
+      if (!alive || !fresh) return
+      const ids = new Set(fresh.map((item) => item.id))
+      setItems((current) => {
+        const extras = current.filter((item) => item?.id && !ids.has(item.id))
+        return [...fresh, ...extras]
       })
+      const guestIds = load('visitante').map((item) => item?.id).filter(Boolean)
+      if (guestIds.every((id) => ids.has(id))) localStorage.removeItem(storageKey('visitante'))
+    }
+
+    sync()
+    function onShow() {
+      if (document.visibilityState === 'visible') sync()
+    }
+    document.addEventListener('visibilitychange', onShow)
     return () => {
       alive = false
+      document.removeEventListener('visibilitychange', onShow)
     }
   }, [ready, user?.id])
 
@@ -116,25 +156,16 @@ export function InventoryProvider({ children }) {
 
   const collect = useCallback((item, origin) => {
     const collectedAt = new Date().toISOString()
-    setItems((current) => {
-      if (current.some((entry) => entry.id === item.id)) return current
-      return [
-        ...current,
-        {
-          ...item,
-          workTitle: origin.workTitle,
-          chapterTitle: origin.chapterTitle,
-          collectedAt,
-        },
-      ]
-    })
-    if (!user?.id) return
-    supabase.from('user_items').insert({
-      user_id: user.id,
-      item_id: item.id,
-      chapter_id: origin.chapterDbId || null,
-      collected_at: collectedAt,
-    })
+    const stored = {
+      ...item,
+      workTitle: origin.workTitle,
+      chapterTitle: origin.chapterTitle,
+      chapterDbId: origin.chapterDbId || null,
+      collectedAt,
+    }
+    setItems((current) => (current.some((entry) => entry.id === item.id) ? current : [...current, stored]))
+    if (!user?.id) return Promise.resolve('local')
+    return storeAccountItem(user.id, stored)
   }, [user])
 
   const value = useMemo(() => ({ items, has, collect, userId }), [items, has, collect, userId])
