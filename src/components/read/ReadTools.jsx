@@ -409,7 +409,7 @@ function CollectForm({ items, work, chapter }) {
         item={flight}
         workTitle={work.title}
         onDone={() => {
-          collect(flight, { workTitle: work.title, chapterTitle: chapter.title })
+          collect(flight, { workTitle: work.title, chapterTitle: chapter.title, chapterDbId: chapter.dbId })
           setFlight(null)
         }}
       />

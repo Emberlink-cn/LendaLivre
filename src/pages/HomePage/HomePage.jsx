@@ -15,7 +15,7 @@ const NOTES = [
   },
   {
     title: 'Depois',
-    text: 'Os capítulos escritos de Terras Invisíveis já abrem a leitura. Itens, inventário e trilha ficam neste navegador até existir o servidor.',
+    text: 'Os capítulos escritos de Terras Invisíveis já abrem a leitura. Com a conta, a coleta e o último capítulo acompanham o leitor.',
   },
 ]
 

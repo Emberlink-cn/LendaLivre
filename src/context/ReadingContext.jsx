@@ -1,4 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { supabase } from '../lib/supabase'
+import { useAuth } from './AuthContext'
 
 const STORAGE_KEY = 'lendalivre_reading'
 const SCALES = [0.94, 1.08, 1.24]
@@ -18,22 +20,55 @@ function load() {
 const ReadingContext = createContext(null)
 
 export function ReadingProvider({ children }) {
+  const { user, ready } = useAuth()
   const [state, setState] = useState(load)
+  const remoteApplied = useRef(false)
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
   }, [state])
 
+  useEffect(() => {
+    remoteApplied.current = false
+  }, [user?.id])
+
+  useEffect(() => {
+    if (!ready || !user?.id) return undefined
+    let alive = true
+    supabase
+      .from('reading_state')
+      .select('chapters(slug, work_id)')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!alive || error || remoteApplied.current || !data?.chapters?.slug) return
+        remoteApplied.current = true
+        setState((current) => ({
+          ...current,
+          last: { workId: data.chapters.work_id, chapterId: data.chapters.slug },
+        }))
+      })
+    return () => {
+      alive = false
+    }
+  }, [ready, user?.id])
+
   const setScaleIndex = useCallback((scaleIndex) => {
     setState((current) => ({ ...current, scaleIndex }))
   }, [])
 
-  const remember = useCallback((workId, chapterId) => {
+  const remember = useCallback((workId, chapterId, chapterDbId) => {
+    remoteApplied.current = true
     setState((current) => {
       if (current.last?.workId === workId && current.last?.chapterId === chapterId) return current
       return { ...current, last: { workId, chapterId } }
     })
-  }, [])
+    if (!user?.id || !chapterDbId) return
+    supabase.from('reading_state').upsert(
+      { user_id: user.id, last_chapter_id: chapterDbId },
+      { onConflict: 'user_id' },
+    )
+  }, [user])
 
   const value = useMemo(
     () => ({

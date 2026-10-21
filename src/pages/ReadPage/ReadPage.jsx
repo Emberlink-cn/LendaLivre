@@ -58,8 +58,8 @@ export default function ReadPage() {
   }, [workId, chapterId])
 
   useEffect(() => {
-    if (workId && chapterId) remember(workId, chapterId)
-  }, [workId, chapterId, remember])
+    if (workId && chapterId) remember(workId, chapterId, chapter?.dbId)
+  }, [workId, chapterId, chapter?.dbId, remember])
 
   if (legacy) return <Navigate to={`/ler/${legacy.workId}/${legacy.chapterId}`} replace />
 

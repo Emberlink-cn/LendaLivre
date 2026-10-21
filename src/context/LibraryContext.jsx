@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { BASE_ITEMS, BASE_MUSIC } from '../data/collectibles'
 import { listWorks } from '../data/catalog'
+import { loadRemoteWorks } from '../lib/remoteCatalog'
+import { useAuth } from './AuthContext'
 
 function findSourceKey(library, workId, chapterId) {
   const base = listWorks().find((work) => work.id === workId)
@@ -34,23 +36,36 @@ function applyPatch(item, patches) {
   return { ...item, ...(patches?.[item.id] ?? {}) }
 }
 
-function resolveTracks(key, extra) {
+function resolveTracks(key, extra, seeded) {
   const removed = new Set(extra.removedTrackIds ?? [])
   const patches = extra.trackPatches ?? {}
-  const base = BASE_MUSIC[key] ? [applyPatch({ id: `base_${key}`, ...BASE_MUSIC[key] }, patches)] : []
+  const base = seeded ?? (BASE_MUSIC[key] ? [{ id: `base_${key}`, ...BASE_MUSIC[key] }] : [])
   const legacy = extra.music
-    ? [applyPatch({ id: extra.music.id || 'custom', title: extra.music.title, embedUrl: extra.music.embedUrl }, patches)]
+    ? [{ id: extra.music.id || 'custom', title: extra.music.title, embedUrl: extra.music.embedUrl }]
     : []
-  const added = (extra.tracks ?? []).map((track) => applyPatch(track, patches))
-  return [...base, ...legacy, ...added].filter((track) => track.embedUrl && !removed.has(track.id))
+  const seen = new Set()
+  const tracks = []
+  for (const track of [...base, ...legacy, ...(extra.tracks ?? [])]) {
+    const next = applyPatch(track, patches)
+    if (!next?.id || !next.embedUrl || removed.has(next.id) || seen.has(next.id)) continue
+    seen.add(next.id)
+    tracks.push(next)
+  }
+  return tracks
 }
 
-function resolveItems(key, extra) {
+function resolveItems(key, extra, seeded) {
   const removed = new Set(extra.removedItemIds ?? [])
   const patches = extra.itemPatches ?? {}
-  return [...(BASE_ITEMS[key] ?? []), ...(extra.items ?? [])]
-    .map((item) => applyPatch(item, patches))
-    .filter((item) => !removed.has(item.id))
+  const seen = new Set()
+  const items = []
+  for (const item of [...(seeded ?? BASE_ITEMS[key] ?? []), ...(extra.items ?? [])]) {
+    const next = applyPatch(item, patches)
+    if (!next?.id || removed.has(next.id) || seen.has(next.id)) continue
+    seen.add(next.id)
+    items.push(next)
+  }
+  return items
 }
 
 function buildChapter(work, chapterId, chaptersStore, workPatches) {
@@ -71,7 +86,9 @@ function buildChapter(work, chapterId, chaptersStore, workPatches) {
   const moods = Array.isArray(meta.moods) ? meta.moods : Array.isArray(legacyMoods) ? legacyMoods : base.moods ?? []
   const file = meta.file || base.file
   const cover = meta.cover || (file ? coverUrl(file) : base.cover || null)
-  const tracks = resolveTracks(key, extra)
+  const seededTracks = base.fromDatabase ? base.tracks ?? [] : null
+  const seededItems = base.fromDatabase ? base.items ?? [] : null
+  const tracks = resolveTracks(key, extra, seededTracks)
   const number = Number(meta.number ?? base.number)
   return {
     ...base,
@@ -84,7 +101,7 @@ function buildChapter(work, chapterId, chaptersStore, workPatches) {
     cover,
     paragraphs: text.paragraphs ?? base.paragraphs ?? [],
     note: text.note ?? base.note ?? '',
-    items: resolveItems(key, extra),
+    items: resolveItems(key, extra, seededItems),
     tracks,
     music: tracks[0] ?? null,
   }
@@ -114,29 +131,41 @@ function decorate(work, chapters, workPatches) {
 const LibraryContext = createContext(null)
 
 export function LibraryProvider({ children }) {
+  const { user, ready } = useAuth()
   const [library, setLibrary] = useState(loadLibrary)
+  const [remote, setRemote] = useState(null)
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(library))
   }, [library])
 
-  const works = useMemo(
-    () =>
-      [
-        ...listWorks().map((work) => {
-          const patch = library.workPatches?.[work.id] ?? {}
-          return {
-            ...work,
-            source: 'base',
-            title: patch.title || work.title,
-            line: patch.line ?? work.line,
-            cover: patch.cover || (work.file ? coverUrl(work.file) : work.cover || null),
-          }
-        }),
-        ...library.works.map((work) => ({ ...work, source: 'local' })),
-      ].map((work) => decorate(work, library.chapters, library.workPatches)),
-    [library],
-  )
+  useEffect(() => {
+    if (!ready) return undefined
+    let alive = true
+    loadRemoteWorks().then((next) => {
+      if (alive) setRemote(next)
+    })
+    return () => {
+      alive = false
+    }
+  }, [ready, user?.id])
+
+  const works = useMemo(() => {
+    const catalog = remote?.length ? remote : listWorks()
+    return [
+      ...catalog.map((work) => {
+        const patch = library.workPatches?.[work.id] ?? {}
+        return {
+          ...work,
+          source: work.fromDatabase ? 'database' : 'base',
+          title: patch.title || work.title,
+          line: patch.line ?? work.line,
+          cover: patch.cover || (work.file ? coverUrl(work.file) : work.cover || null),
+        }
+      }),
+      ...library.works.map((work) => ({ ...work, source: 'local' })),
+    ].map((work) => decorate(work, library.chapters, library.workPatches))
+  }, [library, remote])
 
   const getWork = useCallback((id) => works.find((work) => work.id === id) ?? null, [works])
 
