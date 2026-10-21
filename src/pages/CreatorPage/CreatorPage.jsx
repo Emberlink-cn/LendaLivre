@@ -216,10 +216,16 @@ function countLabel(shown, total, filtering, singular, plural) {
   return total === 1 ? `1 ${singular}` : `${total} ${plural}`
 }
 
+const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+
 function readImage(file, onDone, onError) {
   if (!file) return
-  if (file.size > 400_000) {
-    onError('A imagem precisa ter menos de 400 KB nesta versão local.')
+  if (!IMAGE_TYPES.has(file.type)) {
+    onError('Use uma imagem JPEG, PNG, WebP ou GIF.')
+    return
+  }
+  if (file.size > 8 * 1024 * 1024) {
+    onError('A imagem precisa ter menos de 8 MB.')
     return
   }
   const reader = new FileReader()
@@ -347,7 +353,7 @@ export default function CreatorPage() {
             </NavLink>
           </nav>
           <p className={styles.lead}>
-            Textos, capas, itens e trilhas ficam neste navegador. O envio para um servidor entra com o banco.
+            O que você publica aqui entra no catálogo. Capas e imagens vão junto com o texto.
           </p>
         </header>
       )}
@@ -380,24 +386,18 @@ function NewWork({ works, addWork, onDone }) {
   const [cover, setCover] = useState('')
   const [moods, setMoods] = useState([])
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
 
   function onFile(event) {
     const file = event.target.files?.[0]
-    if (!file) return
-    if (file.size > 700_000) {
-      setError('A capa precisa ter menos de 700 KB nesta versão local.')
-      event.target.value = ''
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = () => {
-      setCover(String(reader.result || ''))
+    event.target.value = ''
+    readImage(file, (next) => {
+      setCover(next)
       setError('')
-    }
-    reader.readAsDataURL(file)
+    }, setError)
   }
 
-  function submit(event) {
+  async function submit(event) {
     event.preventDefault()
     if (!title.trim() || !text.trim()) {
       setError('Informe o título e o texto.')
@@ -409,33 +409,41 @@ function NewWork({ works, addWork, onDone }) {
       .split(/\n\s*\n|\n/)
       .map((paragraph) => paragraph.trim())
       .filter(Boolean)
-    addWork({
-      id,
-      title: title.trim(),
-      line: line.trim() || 'Obra adicionada pelo criador.',
-      moods,
-      cover,
-      chapters: [
-        {
-          id: 'texto',
-          number: 1,
-          name: chapterTitle.trim() || title.trim(),
-          title: chapterTitle.trim() || title.trim(),
-          line: '',
-          moods: [...moods],
-          cover,
-          paragraphs,
-        },
-      ],
-    })
-    setTitle('')
-    setLine('')
-    setChapterTitle('')
-    setText('')
-    setCover('')
-    setMoods([])
+    const workTitle = title.trim()
+    setSaving(true)
     setError('')
-    onDone(`Obra “${title.trim()}” disponível no catálogo.`)
+    try {
+      await addWork({
+        id,
+        title: workTitle,
+        line: line.trim() || 'Obra adicionada pelo criador.',
+        moods,
+        cover,
+        chapters: [
+          {
+            id: 'texto',
+            number: 1,
+            name: chapterTitle.trim() || workTitle,
+            title: chapterTitle.trim() || workTitle,
+            line: '',
+            moods: [...moods],
+            cover,
+            paragraphs,
+          },
+        ],
+      })
+      setTitle('')
+      setLine('')
+      setChapterTitle('')
+      setText('')
+      setCover('')
+      setMoods([])
+      onDone(`Obra “${workTitle}” publicada no catálogo.`)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -459,11 +467,11 @@ function NewWork({ works, addWork, onDone }) {
       </label>
       <label>
         Capa
-        <input type="file" accept="image/*" onChange={onFile} />
+        <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={onFile} />
       </label>
       {cover ? <img src={cover} alt="" className={styles.preview} /> : null}
       {error ? <p className={styles.err}>{error}</p> : null}
-      <button type="submit">Publicar neste navegador</button>
+      <button type="submit" disabled={saving}>{saving ? 'Publicando…' : 'Publicar'}</button>
     </form>
   )
 }
@@ -503,6 +511,7 @@ function WorkEditor({ work, library, onDone }) {
   const [line, setLine] = useState(work.line || '')
   const [cover, setCover] = useState(work.cover || '')
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
   const [seenId, setSeenId] = useState(work.id)
 
   if (seenId !== work.id) {
@@ -519,39 +528,57 @@ function WorkEditor({ work, library, onDone }) {
     readImage(file, setCover, setError)
   }
 
-  function saveWork(event) {
+  async function saveWork(event) {
     event.preventDefault()
     if (!title.trim()) {
       setError('Informe o nome da obra.')
       return
     }
-    library.updateWorkDetails(work.id, { title: title.trim(), line: line.trim(), cover })
+    setSaving(true)
     setError('')
-    onDone(`Obra “${title.trim()}” atualizada.`)
+    try {
+      await library.updateWorkDetails(work.id, { title: title.trim(), line: line.trim(), cover })
+      onDone(`Obra “${title.trim()}” atualizada.`)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
-  function saveNumber(chapter, value) {
+  async function saveNumber(chapter, value) {
     const number = Number(value)
     if (!Number.isFinite(number) || number < 1 || number === chapter.number) return
-    library.updateChapterMeta(work.id, chapter.id, { number })
+    try {
+      await library.updateChapterMeta(work.id, chapter.id, { number })
+    } catch (err) {
+      setError(err.message)
+    }
   }
 
-  function createChapter() {
+  async function createChapter() {
     const number = work.chapters.reduce((max, chapter) => Math.max(max, chapter.number || 0), 0) + 1
     const id = `cap-${Date.now()}`
     const name = `Capítulo ${number}`
-    library.addChapter(work.id, {
-      id,
-      number,
-      name,
-      title: name,
-      line: '',
-      moods: [],
-      cover: '',
-      paragraphs: [],
-      note: '',
-    })
-    navigate(`/criador/gerir/${work.id}/${id}`)
+    setSaving(true)
+    setError('')
+    try {
+      await library.addChapter(work.id, {
+        id,
+        number,
+        name,
+        title: name,
+        line: '',
+        moods: [],
+        cover: '',
+        paragraphs: [],
+        note: '',
+      })
+      navigate(`/criador/gerir/${work.id}/${id}`)
+    } catch (err) {
+      setError(err.message)
+      setSaving(false)
+    }
   }
 
   return (
@@ -567,16 +594,16 @@ function WorkEditor({ work, library, onDone }) {
         </label>
         <label>
           Capa
-          <input type="file" accept="image/*" onChange={onFile} />
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={onFile} />
         </label>
         {cover ? <img src={cover} alt="" className={styles.preview} /> : null}
         {error ? <p className={styles.err}>{error}</p> : null}
-        <button type="submit">Salvar obra</button>
+        <button type="submit" disabled={saving}>{saving ? 'Salvando…' : 'Salvar obra'}</button>
       </form>
       <div className={`${styles.card} ${styles.stack}`}>
         <div className={styles.listHead}>
           <p className={styles.listTitle}>Capítulos</p>
-          <button type="button" className={styles.addItem} onClick={createChapter}>
+          <button type="button" className={styles.addItem} onClick={createChapter} disabled={saving}>
             + Capítulo
           </button>
         </div>
@@ -615,6 +642,7 @@ function ChapterEditor({ workId, chapterId, chapter, tab, library, onDone, onRem
   const [body, setBody] = useState((chapter?.paragraphs ?? []).join('\n\n'))
   const [note, setNote] = useState(chapter?.note ?? '')
   const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [seenKey, setSeenKey] = useState(`${workId}:${chapterId}`)
   const key = `${workId}:${chapterId}`
@@ -639,7 +667,7 @@ function ChapterEditor({ workId, chapterId, chapter, tab, library, onDone, onRem
     readImage(file, setCover, setError)
   }
 
-  function saveText(event) {
+  async function saveText(event) {
     event.preventDefault()
     const paragraphs = body
       .split(/\n\s*\n|\n/)
@@ -651,23 +679,38 @@ function ChapterEditor({ workId, chapterId, chapter, tab, library, onDone, onRem
       return
     }
     const parsedNumber = Number(number)
-    library.setChapterText(workId, chapterId, { title: readingTitle, paragraphs, note: note.trim() })
-    library.updateChapterMeta(workId, chapterId, {
-      name: name.trim() || readingTitle,
-      title: readingTitle,
-      number: Number.isFinite(parsedNumber) && parsedNumber > 0 ? parsedNumber : chapter?.number || 1,
-      line: line.trim(),
-      moods,
-      cover,
-    })
+    setSaving(true)
     setError('')
-    onDone(`Capítulo “${name.trim() || readingTitle}” atualizado.`)
+    try {
+      await library.updateChapterMeta(workId, chapterId, {
+        name: name.trim() || readingTitle,
+        title: readingTitle,
+        number: Number.isFinite(parsedNumber) && parsedNumber > 0 ? parsedNumber : chapter?.number || 1,
+        line: line.trim(),
+        moods,
+        cover,
+        paragraphs,
+        note: note.trim(),
+      })
+      onDone(`Capítulo “${name.trim() || readingTitle}” atualizado.`)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
-  function deleteChapter() {
-    library.removeChapter(workId, chapterId)
-    onDone('Capítulo excluído neste navegador.')
-    onRemoved()
+  async function deleteChapter() {
+    setSaving(true)
+    setError('')
+    try {
+      await library.removeChapter(workId, chapterId)
+      onDone('Capítulo excluído.')
+      onRemoved()
+    } catch (err) {
+      setError(err.message)
+      setSaving(false)
+    }
   }
 
   if (tab === 'itens') {
@@ -712,7 +755,7 @@ function ChapterEditor({ workId, chapterId, chapter, tab, library, onDone, onRem
         </label>
         <label>
           Capa
-          <input type="file" accept="image/*" onChange={onCover} />
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={onCover} />
         </label>
         {cover ? <img src={cover} alt="" className={styles.preview} /> : null}
         <AtmosphereField value={moods} onChange={setMoods} />
@@ -729,7 +772,7 @@ function ChapterEditor({ workId, chapterId, chapter, tab, library, onDone, onRem
           <textarea rows={3} value={note} onChange={(event) => setNote(event.target.value)} />
         </label>
         {error ? <p className={styles.err}>{error}</p> : null}
-        <button type="submit">Salvar capítulo</button>
+        <button type="submit" disabled={saving}>{saving ? 'Salvando…' : 'Salvar capítulo'}</button>
       </form>
       <div className={styles.actions}>
         {confirmDelete ? (
@@ -768,6 +811,7 @@ function ItemManager({ workId, chapterId, chapterTitle, items, library, onDone }
   const [confirmId, setConfirmId] = useState(null)
   const [draft, setDraft] = useState(EMPTY_DRAFT)
   const [draftError, setDraftError] = useState('')
+  const [saving, setSaving] = useState(false)
   const editingId = editor && editor !== 'new' ? editor : null
   const [query, setQuery] = useState('')
   const needle = foldText(query.trim())
@@ -824,7 +868,7 @@ function ItemManager({ workId, chapterId, chapterTitle, items, library, onDone }
     readImage(file, (image) => setDraft((current) => ({ ...current, image })), setDraftError)
   }
 
-  function submitItem(event) {
+  async function submitItem(event) {
     event.preventDefault()
     if (!draft.word.trim() || !draft.name.trim()) {
       setDraftError('Informe a palavra e o nome do item.')
@@ -841,22 +885,36 @@ function ItemManager({ workId, chapterId, chapterTitle, items, library, onDone }
       stats: draft.stats,
       passive: draft.passive.trim(),
     }
-    if (editingId) {
-      library.updateItem(workId, chapterId, editingId, payload)
-      onDone(`Item “${payload.name}” atualizado.`)
+    setSaving(true)
+    setDraftError('')
+    try {
+      if (editingId) {
+        await library.updateItem(workId, chapterId, editingId, payload)
+        onDone(`Item “${payload.name}” atualizado.`)
+      } else {
+        await library.addItem(workId, chapterId, { id: `item_${Date.now()}`, ...payload })
+        onDone(`Item “${payload.name}” adicionado.`)
+      }
       closeEdit()
-      return
+    } catch (err) {
+      setDraftError(err.message)
+    } finally {
+      setSaving(false)
     }
-    library.addItem(workId, chapterId, { id: `item_${Date.now()}`, ...payload })
-    onDone(`Item “${payload.name}” adicionado.`)
-    closeEdit()
   }
 
-  function remove(item) {
-    library.removeItem(workId, chapterId, item.id)
-    if (editingId === item.id) closeEdit()
-    setConfirmId(null)
-    onDone(`Item “${item.name}” excluído.`)
+  async function remove(item) {
+    setSaving(true)
+    try {
+      await library.removeItem(workId, chapterId, item.id)
+      if (editingId === item.id) closeEdit()
+      setConfirmId(null)
+      onDone(`Item “${item.name}” excluído.`)
+    } catch (err) {
+      setDraftError(err.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   useEffect(() => {
@@ -946,7 +1004,7 @@ function ItemManager({ workId, chapterId, chapterTitle, items, library, onDone }
                   </label>
                   <label className={styles.span2}>
                     Imagem do item
-                    <input key={editingId || 'novo'} type="file" accept="image/*" onChange={onDraftFile} />
+                    <input key={editingId || 'novo'} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={onDraftFile} />
                   </label>
                   <label className={styles.span2}>
                     Habilidade passiva
@@ -984,7 +1042,9 @@ function ItemManager({ workId, chapterId, chapterTitle, items, library, onDone }
                     <button type="button" className={styles.ghost} onClick={closeEdit}>
                       Cancelar
                     </button>
-                    <button type="submit">{editingId ? 'Salvar edição' : 'Adicionar item'}</button>
+                    <button type="submit" disabled={saving}>
+                      {saving ? 'Salvando…' : editingId ? 'Salvar edição' : 'Adicionar item'}
+                    </button>
                   </div>
                 </form>
               </div>
@@ -1078,6 +1138,7 @@ function TrackManager({ workId, chapterId, tracks, library, onDone }) {
   const [draftTitle, setDraftTitle] = useState('')
   const [draftSpotify, setDraftSpotify] = useState('')
   const [draftError, setDraftError] = useState('')
+  const [saving, setSaving] = useState(false)
   const [query, setQuery] = useState('')
   const needle = foldText(query.trim())
   const visible = needle
@@ -1099,7 +1160,7 @@ function TrackManager({ workId, chapterId, tracks, library, onDone }) {
     setDraftError('')
   }
 
-  function submitTrack(event) {
+  async function submitTrack(event) {
     event.preventDefault()
     const embedUrl = toSpotifyEmbed(draftSpotify)
     if (!embedUrl) {
@@ -1107,22 +1168,37 @@ function TrackManager({ workId, chapterId, tracks, library, onDone }) {
       return
     }
     const payload = { title: draftTitle.trim() || 'Trilha do capítulo', embedUrl }
-    if (editingId) {
-      library.updateTrack(workId, chapterId, editingId, payload)
-      onDone('Trilha atualizada.')
+    setSaving(true)
+    setDraftError('')
+    try {
+      if (editingId) {
+        await library.updateTrack(workId, chapterId, editingId, payload)
+        onDone('Trilha atualizada.')
+      } else {
+        await library.addTrack(workId, chapterId, { id: `track_${Date.now()}`, ...payload })
+        onDone('Trilha adicionada.')
+      }
       closeEdit()
-      return
+    } catch (err) {
+      setDraftError(err.message)
+    } finally {
+      setSaving(false)
     }
-    library.addTrack(workId, chapterId, { id: `track_${Date.now()}`, ...payload })
-    onDone('Trilha adicionada.')
-    closeEdit()
   }
 
-  function remove(track) {
-    library.removeTrack(workId, chapterId, track.id)
-    if (editingId === track.id) closeEdit()
-    setConfirmId(null)
-    onDone('Trilha excluída.')
+  async function remove(track) {
+    setSaving(true)
+    setDraftError('')
+    try {
+      await library.removeTrack(workId, chapterId, track.id)
+      if (editingId === track.id) closeEdit()
+      setConfirmId(null)
+      onDone('Trilha excluída.')
+    } catch (err) {
+      setDraftError(err.message)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -1137,7 +1213,7 @@ function TrackManager({ workId, chapterId, tracks, library, onDone }) {
           <input value={draftSpotify} onChange={(event) => setDraftSpotify(event.target.value)} />
         </label>
         <div className={styles.composeActions}>
-          <button type="submit">{editingId ? 'Salvar música' : 'Adicionar música'}</button>
+          <button type="submit" disabled={saving}>{saving ? 'Salvando…' : editingId ? 'Salvar música' : 'Adicionar música'}</button>
           {editingId ? (
             <button type="button" className={styles.ghost} onClick={closeEdit}>
               Cancelar

@@ -1,7 +1,14 @@
 import { listWorks } from '../data/catalog'
 import { supabase } from './supabase'
 
+export function mediaUrl(media) {
+  if (!media?.path) return null
+  const { data } = supabase.storage.from(media.bucket || 'publicacao').getPublicUrl(media.path)
+  return data?.publicUrl || null
+}
+
 function asItem(row) {
+  const image = mediaUrl(row.image)
   return {
     id: row.id,
     name: row.name,
@@ -10,6 +17,7 @@ function asItem(row) {
     rarity: row.rarity || 'comum',
     atmosphere: row.atmosphere || '',
     ...(row.frame ? { frame: row.frame } : {}),
+    ...(image ? { image } : {}),
     passive: row.passive || '',
     stats: {
       energia: row.energia ?? 0,
@@ -23,9 +31,9 @@ function asItem(row) {
 
 export async function loadRemoteWorks() {
   const [worksRes, chaptersRes, itemsRes, linksRes, tracksRes] = await Promise.all([
-    supabase.from('works').select('id, title, line'),
-    supabase.from('chapters').select('id, work_id, slug, source_key, number, name, title, line, paragraphs, note, moods'),
-    supabase.from('items').select('id, name, word, type, rarity, atmosphere, frame, passive, energia, ataque, defesa, sorte, azar, removed_at'),
+    supabase.from('works').select('id, title, line, cover:media!works_cover_id_fkey(bucket, path)'),
+    supabase.from('chapters').select('id, work_id, slug, source_key, number, name, title, line, paragraphs, note, moods, cover:media!chapters_cover_id_fkey(bucket, path)'),
+    supabase.from('items').select('id, name, word, type, rarity, atmosphere, frame, passive, energia, ataque, defesa, sorte, azar, removed_at, image:media!items_image_id_fkey(bucket, path)'),
     supabase.from('chapter_items').select('chapter_id, item_id, position'),
     supabase.from('tracks').select('id, chapter_id, title, embed_url, position'),
   ])
@@ -59,6 +67,7 @@ export async function loadRemoteWorks() {
           note: chapter.note ?? '',
           moods: chapter.moods ?? [],
           file: localChapter?.file || null,
+          cover: mediaUrl(chapter.cover),
           fromDatabase: true,
           items: links
             .filter((link) => link.chapter_id === chapter.id)
@@ -74,6 +83,7 @@ export async function loadRemoteWorks() {
       title: work.title,
       line: work.line ?? '',
       file: local?.file || null,
+      cover: mediaUrl(work.cover),
       moods: [],
       chapters,
       fromDatabase: true,

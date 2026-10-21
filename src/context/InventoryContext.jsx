@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { mediaUrl } from '../lib/remoteCatalog'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 
@@ -34,6 +35,7 @@ function load(userId) {
 function cardFromRow(row) {
   const item = row.items
   if (!item?.id) return null
+  const image = mediaUrl(item.image)
   return {
     id: item.id,
     name: item.name,
@@ -42,6 +44,7 @@ function cardFromRow(row) {
     rarity: item.rarity || 'comum',
     atmosphere: item.atmosphere || '',
     ...(item.frame ? { frame: item.frame } : {}),
+    ...(image ? { image } : {}),
     passive: item.passive || '',
     stats: {
       energia: item.energia ?? 0,
@@ -84,7 +87,7 @@ export function InventoryProvider({ children }) {
     supabase
       .from('user_items')
       .select(
-        'collected_at, items(id, name, word, type, rarity, atmosphere, frame, passive, energia, ataque, defesa, sorte, azar), chapters(name, works(title))',
+        'collected_at, items(id, name, word, type, rarity, atmosphere, frame, passive, energia, ataque, defesa, sorte, azar, image:media!items_image_id_fkey(bucket, path)), chapters(name, works(title))',
       )
       .eq('user_id', accountId)
       .then(({ data, error }) => {

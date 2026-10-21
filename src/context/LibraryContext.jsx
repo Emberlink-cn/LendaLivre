@@ -1,6 +1,16 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { BASE_ITEMS, BASE_MUSIC } from '../data/collectibles'
 import { listWorks } from '../data/catalog'
+import {
+  publishNewWork,
+  removeChapterRecord,
+  removeItemRecord,
+  removeTrackRecord,
+  saveChapterRecord,
+  saveItemRecord,
+  saveTrackRecord,
+  saveWorkRecord,
+} from '../lib/publish'
 import { loadRemoteWorks } from '../lib/remoteCatalog'
 import { useAuth } from './AuthContext'
 
@@ -85,7 +95,7 @@ function buildChapter(work, chapterId, chaptersStore, workPatches) {
   const legacyMoods = base.legacyWorkId ? workPatches?.[base.legacyWorkId]?.moods : null
   const moods = Array.isArray(meta.moods) ? meta.moods : Array.isArray(legacyMoods) ? legacyMoods : base.moods ?? []
   const file = meta.file || base.file
-  const cover = meta.cover || (file ? coverUrl(file) : base.cover || null)
+  const cover = meta.cover || base.cover || (file ? coverUrl(file) : null)
   const seededTracks = base.fromDatabase ? base.tracks ?? [] : null
   const seededItems = base.fromDatabase ? base.items ?? [] : null
   const tracks = resolveTracks(key, extra, seededTracks)
@@ -152,6 +162,7 @@ export function LibraryProvider({ children }) {
 
   const works = useMemo(() => {
     const catalog = remote?.length ? remote : listWorks()
+    const publishedIds = new Set(catalog.map((work) => work.id))
     return [
       ...catalog.map((work) => {
         const patch = library.workPatches?.[work.id] ?? {}
@@ -160,83 +171,85 @@ export function LibraryProvider({ children }) {
           source: work.fromDatabase ? 'database' : 'base',
           title: patch.title || work.title,
           line: patch.line ?? work.line,
-          cover: patch.cover || (work.file ? coverUrl(work.file) : work.cover || null),
+          cover: patch.cover || work.cover || (work.file ? coverUrl(work.file) : null),
         }
       }),
-      ...library.works.map((work) => ({ ...work, source: 'local' })),
+      ...library.works.filter((work) => !publishedIds.has(work.id)).map((work) => ({ ...work, source: 'local' })),
     ].map((work) => decorate(work, library.chapters, library.workPatches))
   }, [library, remote])
 
   const getWork = useCallback((id) => works.find((work) => work.id === id) ?? null, [works])
 
-  const addWork = useCallback((work) => {
-    setLibrary((current) => ({ ...current, works: [...current.works, work] }))
+  const refreshCatalog = useCallback(async () => {
+    const next = await loadRemoteWorks()
+    if (!next?.length) throw new Error('Salvei, mas a tela não atualizou. Recarregue a página.')
+    setRemote(next)
   }, [])
 
-  const updateWorkDetails = useCallback((workId, details) => {
+  const chapterRecord = useCallback((workId, chapterId) => {
+    const work = works.find((item) => item.id === workId)
+    return work?.chapters.find((item) => item.id === chapterId) ?? null
+  }, [works])
+
+  const forgetChapter = useCallback((workId, chapterId) => {
     setLibrary((current) => {
-      if (current.works.some((work) => work.id === workId)) {
-        return {
-          ...current,
-          works: current.works.map((work) => (work.id === workId ? { ...work, ...details } : work)),
-        }
-      }
+      const keys = [findSourceKey(current, workId, chapterId), `${workId}:${chapterId}`]
+      const chapters = { ...current.chapters }
+      for (const key of keys) delete chapters[key]
+      return { ...current, chapters }
+    })
+  }, [])
+
+  const addWork = useCallback(async (work) => {
+    await publishNewWork(work)
+    await refreshCatalog()
+  }, [refreshCatalog])
+
+  const updateWorkDetails = useCallback(async (workId, details) => {
+    await saveWorkRecord({ id: workId, title: details.title, line: details.line, cover: details.cover })
+    await refreshCatalog()
+    setLibrary((current) => {
+      const workPatches = { ...(current.workPatches ?? {}) }
+      delete workPatches[workId]
       return {
         ...current,
-        workPatches: {
-          ...(current.workPatches ?? {}),
-          [workId]: { ...(current.workPatches?.[workId] ?? {}), ...details },
-        },
+        works: current.works.filter((work) => work.id !== workId),
+        workPatches,
       }
     })
-  }, [])
+  }, [refreshCatalog])
 
-  const updateChapterMeta = useCallback((workId, chapterId, meta) => {
-    setLibrary((current) => {
-      const key = findSourceKey(current, workId, chapterId)
-      const chapter = current.chapters[key] ?? {}
-      return {
-        ...current,
-        chapters: {
-          ...current.chapters,
-          [key]: { ...chapter, meta: { ...(chapter.meta ?? {}), ...meta } },
-        },
-      }
+  const updateChapterMeta = useCallback(async (workId, chapterId, meta) => {
+    const chapter = chapterRecord(workId, chapterId)
+    await saveChapterRecord({
+      dbId: chapter?.dbId,
+      workId,
+      slug: chapterId,
+      sourceKey: chapter?.sourceKey,
+      changes: meta,
     })
-  }, [])
+    await refreshCatalog()
+    forgetChapter(workId, chapterId)
+  }, [chapterRecord, refreshCatalog, forgetChapter])
 
-  const addChapter = useCallback((workId, chapter) => {
-    setLibrary((current) => {
-      const key = `${workId}:${chapter.id}`
-      const stored = {
-        ...(current.chapters[key] ?? {}),
-        text: {
-          title: chapter.title,
-          paragraphs: chapter.paragraphs ?? [],
-          note: chapter.note ?? '',
-        },
-        meta: {
-          name: chapter.name || chapter.title,
-          title: chapter.title,
-          number: chapter.number,
-          line: chapter.line ?? '',
-          moods: chapter.moods ?? [],
-          cover: chapter.cover || '',
-        },
-      }
-      const ownsWork = current.works.some((work) => work.id === workId)
-      if (ownsWork) {
-        return {
-          ...current,
-          works: current.works.map((work) =>
-            work.id === workId ? { ...work, chapters: [...(work.chapters ?? []), { ...chapter, sourceKey: null }] } : work,
-          ),
-          chapters: { ...current.chapters, [key]: stored },
-        }
-      }
-      return { ...current, chapters: { ...current.chapters, [key]: stored } }
+  const addChapter = useCallback(async (workId, chapter) => {
+    await saveChapterRecord({
+      workId,
+      slug: chapter.id,
+      sourceKey: `${workId}:${chapter.id}`,
+      changes: {
+        number: chapter.number,
+        name: chapter.name,
+        title: chapter.title,
+        line: chapter.line,
+        moods: chapter.moods,
+        paragraphs: chapter.paragraphs,
+        note: chapter.note,
+        cover: chapter.cover,
+      },
     })
-  }, [])
+    await refreshCatalog()
+  }, [refreshCatalog])
 
   const updateWorkMoods = useCallback((workId, moods) => {
     setLibrary((current) => {
@@ -256,131 +269,90 @@ export function LibraryProvider({ children }) {
     })
   }, [])
 
-  const addItem = useCallback((workId, chapterId, item) => {
-    setLibrary((current) => {
-      const key = findSourceKey(current, workId, chapterId)
-      const chapter = current.chapters[key] ?? { items: [] }
-      return {
-        ...current,
-        chapters: {
-          ...current.chapters,
-          [key]: { ...chapter, items: [...(chapter.items ?? []), item] },
-        },
-      }
+  const addItem = useCallback(async (workId, chapterId, item) => {
+    const chapter = chapterRecord(workId, chapterId)
+    if (!chapter?.dbId) throw new Error('Não encontrei este capítulo no catálogo. Recarregue a página.')
+    await saveItemRecord({
+      chapterDbId: chapter.dbId,
+      item,
+      position: chapter.items?.length ?? 0,
     })
-  }, [])
+    await refreshCatalog()
+    forgetChapter(workId, chapterId)
+  }, [chapterRecord, refreshCatalog, forgetChapter])
 
-  const patchChapter = useCallback((workId, chapterId, recipe) => {
-    setLibrary((current) => {
-      const key = findSourceKey(current, workId, chapterId)
-      const chapter = current.chapters[key] ?? { items: [] }
-      return {
-        ...current,
-        chapters: {
-          ...current.chapters,
-          [key]: recipe(chapter),
-        },
-      }
+  const setChapterText = useCallback(async (workId, chapterId, text) => {
+    const chapter = chapterRecord(workId, chapterId)
+    await saveChapterRecord({
+      dbId: chapter?.dbId,
+      workId,
+      slug: chapterId,
+      sourceKey: chapter?.sourceKey,
+      changes: text,
     })
-  }, [])
+    await refreshCatalog()
+    forgetChapter(workId, chapterId)
+  }, [chapterRecord, refreshCatalog, forgetChapter])
 
-  const setChapterText = useCallback((workId, chapterId, text) => {
-    patchChapter(workId, chapterId, (chapter) => ({ ...chapter, removed: false, text }))
-  }, [patchChapter])
+  const removeChapter = useCallback(async (workId, chapterId) => {
+    const chapter = chapterRecord(workId, chapterId)
+    await removeChapterRecord(chapter?.dbId)
+    await refreshCatalog()
+    forgetChapter(workId, chapterId)
+  }, [chapterRecord, refreshCatalog, forgetChapter])
 
-  const removeChapter = useCallback((workId, chapterId) => {
-    setLibrary((current) => {
-      const key = findSourceKey(current, workId, chapterId)
-      const ownsWork = current.works.some((work) => work.id === workId)
-      if (ownsWork) {
-        const chapters = { ...current.chapters }
-        delete chapters[key]
-        return {
-          works: current.works.map((work) =>
-            work.id === workId
-              ? { ...work, chapters: (work.chapters ?? []).filter((chapter) => chapter.id !== chapterId) }
-              : work,
-          ),
-          chapters,
-        }
-      }
-      return {
-        ...current,
-        chapters: {
-          ...current.chapters,
-          [key]: { ...(current.chapters[key] ?? {}), removed: true },
-        },
-      }
+  const updateItem = useCallback(async (workId, chapterId, itemId, patch) => {
+    const chapter = chapterRecord(workId, chapterId)
+    if (!chapter?.dbId) throw new Error('Não encontrei este capítulo no catálogo. Recarregue a página.')
+    const current = chapter.items?.find((item) => item.id === itemId) ?? { id: itemId }
+    const index = chapter.items?.findIndex((item) => item.id === itemId) ?? -1
+    await saveItemRecord({
+      chapterDbId: chapter.dbId,
+      item: { ...current, ...patch, id: itemId },
+      position: index >= 0 ? index : 0,
     })
-  }, [])
+    await refreshCatalog()
+    forgetChapter(workId, chapterId)
+  }, [chapterRecord, refreshCatalog, forgetChapter])
 
-  const updateItem = useCallback((workId, chapterId, itemId, patch) => {
-    patchChapter(workId, chapterId, (chapter) => {
-      const extras = chapter.items ?? []
-      if (extras.some((item) => item.id === itemId)) {
-        return {
-          ...chapter,
-          items: extras.map((item) => (item.id === itemId ? { ...item, ...patch } : item)),
-        }
-      }
-      return {
-        ...chapter,
-        itemPatches: {
-          ...(chapter.itemPatches ?? {}),
-          [itemId]: { ...(chapter.itemPatches?.[itemId] ?? {}), ...patch },
-        },
-      }
+  const removeItem = useCallback(async (workId, chapterId, itemId) => {
+    const chapter = chapterRecord(workId, chapterId)
+    await removeItemRecord({ chapterDbId: chapter?.dbId, itemId })
+    await refreshCatalog()
+    forgetChapter(workId, chapterId)
+  }, [chapterRecord, refreshCatalog, forgetChapter])
+
+  const addTrack = useCallback(async (workId, chapterId, track) => {
+    const chapter = chapterRecord(workId, chapterId)
+    if (!chapter?.dbId) throw new Error('Não encontrei este capítulo no catálogo. Recarregue a página.')
+    await saveTrackRecord({
+      chapterDbId: chapter.dbId,
+      track,
+      position: chapter.tracks?.length ?? 0,
     })
-  }, [patchChapter])
+    await refreshCatalog()
+    forgetChapter(workId, chapterId)
+  }, [chapterRecord, refreshCatalog, forgetChapter])
 
-  const removeItem = useCallback((workId, chapterId, itemId) => {
-    patchChapter(workId, chapterId, (chapter) => {
-      const extras = chapter.items ?? []
-      if (extras.some((item) => item.id === itemId)) {
-        return { ...chapter, items: extras.filter((item) => item.id !== itemId) }
-      }
-      return {
-        ...chapter,
-        removedItemIds: [...new Set([...(chapter.removedItemIds ?? []), itemId])],
-      }
+  const updateTrack = useCallback(async (workId, chapterId, trackId, patch) => {
+    const chapter = chapterRecord(workId, chapterId)
+    if (!chapter?.dbId) throw new Error('Não encontrei este capítulo no catálogo. Recarregue a página.')
+    const current = chapter.tracks?.find((track) => track.id === trackId) ?? { id: trackId }
+    const index = chapter.tracks?.findIndex((track) => track.id === trackId) ?? -1
+    await saveTrackRecord({
+      chapterDbId: chapter.dbId,
+      track: { ...current, ...patch, id: trackId },
+      position: index >= 0 ? index : 0,
     })
-  }, [patchChapter])
+    await refreshCatalog()
+    forgetChapter(workId, chapterId)
+  }, [chapterRecord, refreshCatalog, forgetChapter])
 
-  const addTrack = useCallback((workId, chapterId, track) => {
-    patchChapter(workId, chapterId, (chapter) => ({
-      ...chapter,
-      tracks: [...(chapter.tracks ?? []), track],
-    }))
-  }, [patchChapter])
-
-  const updateTrack = useCallback((workId, chapterId, trackId, patch) => {
-    patchChapter(workId, chapterId, (chapter) => {
-      const extras = chapter.tracks ?? []
-      if (extras.some((track) => track.id === trackId) || (chapter.music && (chapter.music.id || 'custom') === trackId)) {
-        return {
-          ...chapter,
-          music: chapter.music && (chapter.music.id || 'custom') === trackId ? { ...chapter.music, ...patch, id: trackId } : chapter.music,
-          tracks: extras.map((track) => (track.id === trackId ? { ...track, ...patch } : track)),
-        }
-      }
-      return {
-        ...chapter,
-        trackPatches: {
-          ...(chapter.trackPatches ?? {}),
-          [trackId]: { ...(chapter.trackPatches?.[trackId] ?? {}), ...patch },
-        },
-      }
-    })
-  }, [patchChapter])
-
-  const removeTrack = useCallback((workId, chapterId, trackId) => {
-    patchChapter(workId, chapterId, (chapter) => ({
-      ...chapter,
-      music: chapter.music && (chapter.music.id || 'custom') === trackId ? null : chapter.music,
-      tracks: (chapter.tracks ?? []).filter((track) => track.id !== trackId),
-      removedTrackIds: [...new Set([...(chapter.removedTrackIds ?? []), trackId])],
-    }))
-  }, [patchChapter])
+  const removeTrack = useCallback(async (workId, chapterId, trackId) => {
+    await removeTrackRecord(trackId)
+    await refreshCatalog()
+    forgetChapter(workId, chapterId)
+  }, [refreshCatalog, forgetChapter])
 
   const value = useMemo(
     () => ({
