@@ -483,13 +483,10 @@ export default function InventoryPage() {
   const [openId, setOpenId] = useState(null)
   const catalog = catalogItems(works)
   const ownedById = new Map(items.map((item) => [item.id, item]))
-  const cards = [
-    ...catalog.map((item) => {
-      const owned = ownedById.get(item.id)
-      return { item: owned ? ownedCard(owned, item) : item, owned: Boolean(owned) }
-    }),
-    ...items.filter((item) => !catalog.some((entry) => entry.id === item.id)).map((item) => ({ item, owned: true })),
-  ]
+  const cards = catalog.map((item) => {
+    const owned = ownedById.get(item.id)
+    return { item: owned ? ownedCard(owned, item) : item, owned: Boolean(owned) }
+  })
   const visible = sortedCards(
     cards.filter(({ item }) => matchesCardFilters(item, filters)),
     sort,

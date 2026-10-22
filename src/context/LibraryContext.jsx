@@ -65,11 +65,12 @@ function resolveTracks(key, extra, seeded) {
 }
 
 function resolveItems(key, extra, seeded) {
+  if (seeded) return seeded.filter((item) => item?.id)
   const removed = new Set(extra.removedItemIds ?? [])
   const patches = extra.itemPatches ?? {}
   const seen = new Set()
   const items = []
-  for (const item of [...(seeded ?? BASE_ITEMS[key] ?? []), ...(extra.items ?? [])]) {
+  for (const item of [...(BASE_ITEMS[key] ?? []), ...(extra.items ?? [])]) {
     const next = applyPatch(item, patches)
     if (!next?.id || removed.has(next.id) || seen.has(next.id)) continue
     seen.add(next.id)

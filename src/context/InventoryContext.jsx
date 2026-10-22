@@ -147,10 +147,7 @@ export function InventoryProvider({ children }) {
       const fresh = await readAccountItems(accountId)
       if (!alive || !fresh) return
       const ids = new Set(fresh.map((item) => item.id))
-      setItems((current) => {
-        const extras = current.filter((item) => item?.id && !ids.has(item.id))
-        return [...fresh, ...extras]
-      })
+      setItems(fresh)
       const guestIds = load('visitante').map((item) => item?.id).filter(Boolean)
       if (guestIds.every((id) => ids.has(id))) localStorage.removeItem(storageKey('visitante'))
     }
