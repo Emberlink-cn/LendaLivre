@@ -325,7 +325,6 @@
   background: transparent;
   color: inherit;
   cursor: pointer;
-  container-type: inline-size;
 }
 
 .tip {

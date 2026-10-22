@@ -7,13 +7,14 @@ import { useLayoutEffect, useRef, useState } from 'react'
 const CSS = `
 @import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap");
 
-.tcg-fit { width:100%; height:100%; aspect-ratio:5 / 7; }
-.tcg-clip { width:100%; height:100%; overflow:hidden; }
-.tcg-scale { width:512px; height:716.8px; }
+.tcg-fit { position:relative; width:100%; height:100%; aspect-ratio:5 / 7; overflow:hidden;
+  -webkit-text-size-adjust:none; text-size-adjust:none; }
+.tcg-scale { position:absolute; top:0; left:0; width:512px; height:716.8px; transform-origin:top left; }
 .tcg {
   width: 100%;
   height: 100%;
   font-size: 16px;
+  -webkit-text-size-adjust:none; text-size-adjust:none;
   font-family: "Crimson Pro", Georgia, serif;
   user-select: none; position: relative;
 
@@ -72,8 +73,9 @@ const CSS = `
   object-position:var(--ix, 50%) var(--iy, 50%); transform:scale(var(--iz, 1));
   transform-origin:var(--ix, 50%) var(--iy, 50%); display:block; }
 .tcg__art svg { width:42%; height:auto; }
-.tcg__meta { display:flex; align-items:center; justify-content:center; gap:1em;
+.tcg__meta { display:flex; align-items:center; justify-content:center; gap:1em; min-width:0; max-width:100%;
   font:600 1.1em/1 "Cinzel",Georgia,serif; letter-spacing:.06em; color:var(--fg); text-align:center; }
+.tcg__meta span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .tcg__gem { width:.7em; height:.7em; flex:0 0 auto; transform:rotate(45deg); background:var(--gem); box-shadow:0 0 .8em var(--gem); }
 .tcg__text { padding:.8em 1em; min-height:8.4em; border-radius:.4em; border:.15em solid var(--m3);
   color:var(--paper-ink); background:var(--grunge), var(--noise), var(--paper); background-blend-mode:multiply,multiply,normal;
@@ -142,7 +144,11 @@ function FaceShell({ rev = false, className = '', children }) {
     if (!el) return undefined
     const apply = () => {
       const width = el.clientWidth
-      if (width > 0) setZoom(width / CARD_WIDTH)
+      const height = el.clientHeight
+      if (width <= 0) return
+      const byWidth = width / CARD_WIDTH
+      const byHeight = height > 0 ? height / (CARD_WIDTH * 1.4) : byWidth
+      setZoom(Math.min(byWidth, byHeight))
     }
     apply()
     const observer = new ResizeObserver(apply)
@@ -152,10 +158,8 @@ function FaceShell({ rev = false, className = '', children }) {
 
   return (
     <div ref={ref} className={`tcg-fit ${rev ? 'tcg-fit--rev' : ''} ${className}`}>
-      <div className="tcg-clip">
-        <div className="tcg-scale" style={{ zoom }}>
-          {children}
-        </div>
+      <div className="tcg-scale" style={{ transform: `scale(${zoom})` }}>
+        {children}
       </div>
     </div>
   )
