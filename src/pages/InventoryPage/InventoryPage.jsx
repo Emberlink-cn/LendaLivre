@@ -31,6 +31,9 @@ const TYPE_LABELS = {
   texto: 'Texto',
   veiculo: 'Veículo',
   vestimenta: 'Vestimenta',
+  local: 'Local',
+  personagem: 'Personagem',
+  montaria: 'Montaria',
 }
 
 const EMPTY_FILTERS = {
@@ -292,7 +295,7 @@ function CardFacts({ card }) {
     <div className={styles.facts}>
       <p>
         <span>Atmosfera</span>
-        <b>{card.atmosphere || '—'}</b>
+        <b>{card.atmospheres.length ? card.atmospheres.join(' · ') : '—'}</b>
       </p>
       <p>
         <span>Tipo</span>
@@ -326,10 +329,11 @@ function cardProps(entry) {
   return {
     title: card.name,
     image: card.image,
+    imageFrame: { zoom: card.imageZoom, x: card.imageX, y: card.imageY },
     fallback: <ItemIcon type={card.type} />,
     type: TYPE_LABELS[card.type] || card.type || 'Item',
     origin: card.workTitle || 'LendaLivre',
-    description: card.chapterTitle ? `Coletado em ${card.chapterTitle}.` : card.workTitle,
+    description: card.passive.trim() || undefined,
     color: card.frame,
     stats: faceStats(card),
   }

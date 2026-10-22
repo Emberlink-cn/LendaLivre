@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 
 /* Carta de item: CSS embutido, injetado uma vez.
    Card = frente, CardBack = verso, CardFlip = giro no clique.
@@ -7,10 +7,13 @@ import { useState } from 'react'
 const CSS = `
 @import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap");
 
+.tcg-fit { width:100%; height:100%; aspect-ratio:5 / 7; }
+.tcg-clip { width:100%; height:100%; overflow:hidden; }
+.tcg-scale { width:512px; height:716.8px; }
 .tcg {
   width: 100%;
-  aspect-ratio: 5 / 7;
-  font-size: 3.125cqw;
+  height: 100%;
+  font-size: 16px;
   font-family: "Crimson Pro", Georgia, serif;
   user-select: none; position: relative;
 
@@ -55,7 +58,7 @@ const CSS = `
 .tcg__corner.tl{top:-.3em;left:-.3em} .tcg__corner.tr{top:-.3em;right:-.3em;transform:scaleX(-1)}
 .tcg__corner.bl{bottom:-.3em;left:-.3em;transform:scaleY(-1)} .tcg__corner.br{bottom:-.3em;right:-.3em;transform:scale(-1,-1)}
 
-.tcg__front { display:grid; grid-template-rows:auto 1fr auto auto auto; gap:.8em; }
+.tcg__front { display:grid; height:100%; min-height:0; grid-template-rows:auto minmax(0,1fr) auto auto auto; gap:.8em; }
 .tcg__title { margin:0 1.4em; padding:.3em .8em; text-align:center;
   border-top:.1em solid var(--m3); border-bottom:.1em solid var(--m3);
   background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent); }
@@ -65,7 +68,9 @@ const CSS = `
   border-radius:9em 9em .6em .6em / 6em 6em .6em .6em; border:.2em solid var(--m2);
   box-shadow:0 0 0 .2em #000, 0 0 0 .3em var(--m3), inset 0 0 1.8em rgba(0,0,0,.8);
   background:radial-gradient(circle at 50% 40%, var(--bg1), #050505); color:var(--m2); }
-.tcg__art img { width:100%; height:100%; object-fit:cover; display:block; }
+.tcg__art img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+  object-position:var(--ix, 50%) var(--iy, 50%); transform:scale(var(--iz, 1));
+  transform-origin:var(--ix, 50%) var(--iy, 50%); display:block; }
 .tcg__art svg { width:42%; height:auto; }
 .tcg__meta { display:flex; align-items:center; justify-content:center; gap:1em;
   font:600 1.1em/1 "Cinzel",Georgia,serif; letter-spacing:.06em; color:var(--fg); text-align:center; }
@@ -91,11 +96,12 @@ const CSS = `
 
 .tcg-flip { width:100%; aspect-ratio:5/7; perspective:1400px; cursor:pointer; container-type:inline-size; }
 .tcg-locked { width:100%; height:100%; opacity:.2; pointer-events:none; container-type:inline-size; }
-.tcg-locked > .tcg { height:100%; }
+.tcg-locked > .tcg-fit { width:100%; height:100%; aspect-ratio:auto; }
 .tcg-flip__in { position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform .7s cubic-bezier(.3,.7,.2,1); }
 .tcg-flip.is-back .tcg-flip__in { transform:rotateY(180deg); }
-.tcg-flip .tcg { position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
-.tcg-flip .tcg--rev { transform:rotateY(180deg); }
+.tcg-flip .tcg-fit { position:absolute; inset:0; width:100%; height:100%; aspect-ratio:auto;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+.tcg-flip .tcg-fit--rev { transform:rotateY(180deg); }
 @media (prefers-reduced-motion: reduce){ .tcg-flip__in{ transition:none } }
 `
 
@@ -125,9 +131,47 @@ function Corners() {
   return ['tl', 'tr', 'bl', 'br'].map((pos) => <Corner key={pos} pos={pos} />)
 }
 
+const CARD_WIDTH = 512
+
+function FaceShell({ rev = false, className = '', children }) {
+  const ref = useRef(null)
+  const [zoom, setZoom] = useState(1)
+
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return undefined
+    const apply = () => {
+      const width = el.clientWidth
+      if (width > 0) setZoom(width / CARD_WIDTH)
+    }
+    apply()
+    const observer = new ResizeObserver(apply)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div ref={ref} className={`tcg-fit ${rev ? 'tcg-fit--rev' : ''} ${className}`}>
+      <div className="tcg-clip">
+        <div className="tcg-scale" style={{ zoom }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function artStyle(frame) {
+  const zoom = frame?.zoom ?? 1
+  const x = frame?.x ?? 50
+  const y = frame?.y ?? 50
+  return { '--ix': `${x}%`, '--iy': `${y}%`, '--iz': zoom }
+}
+
 export function Card({
   title,
   image,
+  imageFrame,
   fallback = null,
   type,
   origin,
@@ -139,16 +183,18 @@ export function Card({
 }) {
   useStyles()
   const shown = stats.slice(0, 5)
+  const text = typeof description === 'string' ? description.trim() : description
 
   return (
-    <article className={`tcg tcg--${color} ${rev ? 'tcg--rev' : ''} ${className}`}>
+    <FaceShell rev={rev} className={className}>
+      <article className={`tcg tcg--${color}`}>
       <div className="tcg__frame tcg__front">
         <Corners />
         <header className="tcg__title">
           <h3>{title}</h3>
         </header>
         <div className="tcg__art">
-          {image ? <img src={image} alt="" draggable="false" /> : fallback}
+          {image ? <img src={image} alt="" draggable="false" style={artStyle(imageFrame)} /> : fallback}
         </div>
         <div className="tcg__meta">
           <span>{type}</span>
@@ -159,9 +205,9 @@ export function Card({
             </>
           ) : null}
         </div>
-        {description ? (
+        {text ? (
           <section className="tcg__text">
-            <p>{description}</p>
+            <p>{text}</p>
           </section>
         ) : null}
         {shown.length ? (
@@ -175,14 +221,16 @@ export function Card({
           </footer>
         ) : null}
       </div>
-    </article>
+      </article>
+    </FaceShell>
   )
 }
 
 export function CardBack({ backImage, text = '', color = 'gold', className = '', rev = false }) {
   useStyles()
   return (
-    <article className={`tcg tcg--${color} ${rev ? 'tcg--rev' : ''} ${className}`}>
+    <FaceShell rev={rev} className={className}>
+      <article className={`tcg tcg--${color}`}>
       <div className="tcg__frame tcg__back">
         <Corners />
         <div className="tcg__backart">
@@ -198,7 +246,8 @@ export function CardBack({ backImage, text = '', color = 'gold', className = '',
         </div>
         {text ? <div className="tcg__backtext">{text}</div> : null}
       </div>
-    </article>
+      </article>
+    </FaceShell>
   )
 }
 

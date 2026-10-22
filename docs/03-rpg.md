@@ -1,7 +1,6 @@
-# 03 · RPG (Web e Tabuleiro) — Fase 3 e 4
+# 03 · RPG (Web e Tabuleiro) — ideia antiga
 
-> Depende de: `00-nucleo-universo.md`.
-> Não desenhar regras, mapa nem classes agora. As perguntas abaixo esperam gente lendo o livro e jogando o vertical.
+> A direção atual está em `02-app-leitura.md`, seção 6. O jogo de tabuleiro previsto agora é online, no desktop, e usa as cartas do inventário. Este arquivo guarda o RPG físico e a versão web de até 8 jogadores. Não é o próximo passo.
 
 ## 1. Conceito guardado
 

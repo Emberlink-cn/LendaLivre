@@ -7,6 +7,16 @@ export function mediaUrl(media) {
   return data?.publicUrl || null
 }
 
+const ITEM_FIELDS =
+  'id, name, word, type, rarity, atmosphere, frame, passive, energia, ataque, defesa, sorte, azar, removed_at, image:media!items_image_id_fkey(bucket, path)'
+const ITEM_FIELDS_FULL =
+  'id, name, word, type, rarity, atmosphere, atmospheres, image_zoom, image_x, image_y, frame, passive, energia, ataque, defesa, sorte, azar, removed_at, image:media!items_image_id_fkey(bucket, path)'
+
+function missingItemColumns(error) {
+  const message = String(error?.message || '')
+  return /atmospheres|image_zoom|image_x|image_y|schema cache/i.test(message)
+}
+
 function asItem(row) {
   const image = mediaUrl(row.image)
   return {
@@ -16,6 +26,10 @@ function asItem(row) {
     type: row.type,
     rarity: row.rarity || 'comum',
     atmosphere: row.atmosphere || '',
+    ...(Array.isArray(row.atmospheres) ? { atmospheres: row.atmospheres } : {}),
+    ...(row.image_zoom == null ? {} : { imageZoom: row.image_zoom }),
+    ...(row.image_x == null ? {} : { imageX: row.image_x }),
+    ...(row.image_y == null ? {} : { imageY: row.image_y }),
     ...(row.frame ? { frame: row.frame } : {}),
     ...(image ? { image } : {}),
     passive: row.passive || '',
@@ -29,11 +43,17 @@ function asItem(row) {
   }
 }
 
+async function loadItems() {
+  const full = await supabase.from('items').select(ITEM_FIELDS_FULL)
+  if (full.error && missingItemColumns(full.error)) return supabase.from('items').select(ITEM_FIELDS)
+  return full
+}
+
 export async function loadRemoteWorks() {
   const [worksRes, chaptersRes, itemsRes, linksRes, tracksRes] = await Promise.all([
     supabase.from('works').select('id, title, line, cover:media!works_cover_id_fkey(bucket, path)'),
     supabase.from('chapters').select('id, work_id, slug, source_key, number, name, title, line, paragraphs, note, moods, cover:media!chapters_cover_id_fkey(bucket, path)'),
-    supabase.from('items').select('id, name, word, type, rarity, atmosphere, frame, passive, energia, ataque, defesa, sorte, azar, removed_at, image:media!items_image_id_fkey(bucket, path)'),
+    loadItems(),
     supabase.from('chapter_items').select('chapter_id, item_id, position'),
     supabase.from('tracks').select('id, chapter_id, title, embed_url, position'),
   ])

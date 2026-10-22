@@ -1,106 +1,97 @@
-# 02 · LendaLivre — App de Leitura (Fase 1)
+# 02 · LendaLivre — Plano do portal
 
 > Depende de: `00-nucleo-universo.md` e `01-livro.md`
-> Este repositório é o app. A versão anterior (home da Cof Cof, catálogo mock, leitura em modal, loja com iframe e premium vazio) foi aposentada: serviu de ensaio e não tinha a identidade visual desejada.
+> Os jogos ficam para depois. `03-rpg.md` e `04-jogo-vertical.md` guardam ideias antigas; a direção atual dos jogos está na seção 6 deste arquivo.
 
 ## 1. O que o app é
 
-Portal escuro para ler obras do universo. A capa carrega a cor. A interface é sala: fundo preto, texto claro, painéis com transparência e desfoque.
+Portal para quem escreve publicar histórias. A interface é uma sala escura: fundo preto, texto claro, painéis com transparência.
 
-Unidade do catálogo: **obra → capítulos**. HQ e vídeo podem entrar depois como outros tipos de obra. A história principal é a primeira obra de verdade, quando o texto existir.
+Há dois tipos de publicação:
 
-Leitura pública. Conta, assinatura, inventário e ranking esperam capítulos publicados.
+- **Obra do livro.** A história principal pode ter texto, trilha sonora, itens coletáveis e cartas. O inventário guarda essas cartas. No futuro, as mesmas cartas entram em dois jogos.
+- **Obra de outro autor.** Só texto e música. Itens, cartas, inventário e jogo não aparecem para esse autor nem na obra dele.
 
-## 2. Stack desta fase
+A conta é a mesma para todo mundo. O que muda é o que a obra permite publicar e o que o leitor encontra nela.
+
+## 2. Onde estamos
+
+Etapa atual: **publicar e ler a obra do livro**, com coleta e trilha. O site está no ar. Os jogos não começaram.
+
+Endereço: https://lendalivre.pages.dev  
+Banco e conta: Supabase. Imagens no Storage, no bucket `publicacao`.  
+Front: React + Vite. Hospedagem: Cloudflare Pages.
+
+### Já feito
+
+- Início, catálogo, obra, leitura, entrar e criar conta
+- Conta real no Supabase. O papel de criador da casa (`super`) só muda pelo painel do banco
+- Catálogo publicado: obra, capítulos, itens e trilhas lidos do banco
+- Sala do criador publica texto, capa, item e trilha
+- Coleta na leitura e inventário na conta, no celular e no desktop
+- Carta com moldura, atributos, raridade e passiva. Sem passiva, a faixa de texto não aparece
+- Imagem da carta com zoom e posição. Item com mais de uma atmosfera
+- Tipos de item incluem Local, Personagem e Montaria
+- Obra não tem atmosfera. Atmosfera fica no capítulo e no item
+- Trilha sonora no capítulo
+- Último capítulo lido acompanha a conta
+
+### Falta nesta etapa
+
+- Excluir uma obra. Hoje dá para criar, editar e excluir capítulo, item e trilha, mas a obra em si não sai
+- Marcar quais obras podem ter itens e cartas. Hoje a sala do criador oferece isso para qualquer obra
+- Autor comum, separado do criador da casa: publica texto e música, sem itens, cartas, inventário e jogo
+- Carta coletada começa no nível 1. O número ainda não existe na coleta
+- Enviar ao banco as colunas novas de atmosfera múltipla e de enquadramento da imagem
+- Completar os capítulos do livro que ainda estão sem texto
+- Domínio próprio
+
+Fora desta etapa, de propósito: jogos, amigos, conquistas, assinatura, ranking e loja.
+
+## 3. Próximo passo do portal
+
+Ainda sem jogo.
+
+1. Excluir obra, com os capítulos, as trilhas e os vínculos. Item já coletado não pode sumir da conta de quem o tem sem uma decisão explícita.
+2. A obra do livro é a única com coleta. Nas outras, a sala do criador mostra texto, capa e música.
+3. Papel de autor para quem publica a própria história. O criador da casa continua podendo publicar itens e cartas na obra do livro.
+4. Guardar `nível 1` em cada carta coletada. A tela pode mostrar o nível. Evoluir fica para o jogo mobile.
+
+## 4. O que cada pessoa faz
+
+| Pessoa | Pode |
+|---|---|
+| Leitor | Ler, ouvir a trilha e, na obra do livro, coletar cartas |
+| Autor | Publicar e excluir as próprias obras, capítulos, capas e músicas |
+| Criador da casa | O que o autor faz, mais itens e cartas na obra do livro |
+
+Inventário, carta e jogo só existem para o conteúdo do livro. Outro autor não vê essas ferramentas na sala dele.
+
+## 5. Cartas
+
+O item coletado é uma carta. Ela entra no inventário no **nível 1**.
+
+A carta guarda nome, tipo, atmosferas, raridade, moldura, atributos, passiva, imagem e o enquadramento dessa imagem. O nível é da cópia de quem coletou, não do item no catálogo: duas pessoas podem ter a mesma carta em níveis diferentes quando o jogo existir.
+
+Sem passiva, a carta não mostra a faixa de texto.
+
+## 6. Jogos, depois
+
+Não desenhar regra nem tela agora.
+
+- **Jogo mobile.** Serve só para evoluir o nível das cartas. Não é um modo à parte com outras peças.
+- **Jogo de tabuleiro online, no desktop.** Usa as mesmas cartas do inventário.
+- A carta é uma só. O mobile muda o nível. O tabuleiro joga com o que a pessoa já tem.
+
+O duelo vertical e o RPG de mesa físico, descritos nos docs 03 e 04, não são o próximo passo.
+
+## 7. Stack
 
 | Camada | Tecnologia |
 |---|---|
-| Front | React + Vite, responsivo (celular e desktop) |
-| Site | Cloudflare Pages, a partir do build do Vite |
-| Banco, conta e API | Supabase (Postgres). Plano gratuito para o teste com amigos |
-| Arquivos | Capas locais agora; Cloudflare R2 quando as imagens pesadas forem publicadas |
-| Texto | Capítulos em dados locais agora; Markdown no repositório no passo seguinte |
-| Conta hoje | Ainda só no navegador. O Supabase entra no lugar disso, e não protege conteúdo antes disso |
-| Pagamentos | Fora desta fase |
+| Front | React + Vite, celular e desktop |
+| Site | Cloudflare Pages |
+| Banco, conta e arquivos | Supabase (Postgres, Auth e Storage) |
+| Pagamentos | Fora |
 
-O projeto gratuito do Supabase pausa depois de uma semana sem uso e volta ao abrir de novo no painel. O limite gratuito é de dois projetos ativos, com 500 MB de banco.
-
-Mobile é o layout responsivo. O manifesto PWA já permite instalar o site na tela inicial. Loja de aplicativo fica para depois. Capítulos gratuitos, no futuro, precisam de HTML indexável (pré-render). Trocar o Vite por outro framework fica para quando existir texto que valha ser achado na busca.
-
-## 3. Identidade da interface
-
-Registrada no núcleo, seção 10. Resumo:
-
-- Fundo `#07080b`, texto `#f3efe4`, ouro `#e2b15a`
-- Painéis de vidro (transparência + blur), bordas finas claras
-- Título em serif (Newsreader), interface em sans (Outfit)
-- Capas de `public/midias/catalog-page/livros/`
-- Hero com a imagem do viajante no rio (`cardbook.jpg`)
-- Fora do catálogo: timeline “EPIC STORY”, guerreira sem título, esboço `10.png`
-- Sem telefone, Pix ou loja na interface
-
-## 4. Telas atuais
-
-1. **Início** — sala com a capa de entrada, faixa de obras, três notas (leitura, tom, o que vem depois)
-2. **Catálogo** — busca, filtro por clima (Noite, Sertão, Mata, Mito, Cidade), grade de capas
-3. **Obra** — capa, apresentação, lista de capítulos ou aviso de texto em preparação
-4. **Leitura** — página inteira, coluna estreita, tamanho de letra, marcas de música (♪, ♫) e o aviso do próprio capítulo quando ele existe
-5. **Entrar / criar conta** — ensaio visual. O acesso ainda não é uma conta de verdade
-
-Seis obras abrem o texto escrito: Lázaro, Os Portões da Areia, Bamboo, Couro e Escamas, Vagalumes e A última de sua geração. Cogaua é o nome do rei; a capa continua no arquivo antigo `cardbook-Saci.jpg`. Damato e Batalha dos Espólios aparecem pelo nome, ainda sem capa e sem capítulo.
-
-## 5. Escopo que ainda falta
-
-### Agora, antes de plataforma
-
-- [x] Ligar os capítulos já escritos em `docs/capítulos/`
-- [ ] Completar os arquivos que ainda só têm o título
-- [ ] Aviso de tom adulto no capítulo público
-- [ ] Buffer de 5 a 10 capítulos antes de chamar isso de lançamento
-
-### Quando o texto existir
-
-- [ ] Cadastro real (e-mail e senha; Google só depois)
-- [ ] Progresso de leitura no servidor
-- [ ] Painel simples para publicar capítulo
-- [ ] Capítulos gratuitos e, só então, capítulos para assinantes
-- [ ] Privacidade e consentimento no primeiro cadastro real
-- [ ] Publicar o site no Cloudflare Pages
-- [ ] Ligar conta, capítulos e inventário ao Supabase
-- [ ] Domínio
-
-### Coleta (fase seguinte do app)
-
-- [ ] Itens pelo ID do núcleo, ligados ao capítulo
-- [ ] Coleta validada no servidor, ao concluir a leitura — o navegador pede, o servidor decide
-- [ ] Inventário
-- [ ] Ranking por completude ou por temporada, não por “primeiros a coletar no lançamento”
-
-### Social (por último)
-
-- [ ] Perfil público
-- [ ] Amigos
-- [ ] Conquistas
-
-Conta única com o jogo é uma convenção de identidade para o futuro: o mesmo usuário, domínios separados. Não construir agora a loja do jogo nem o inventário compartilhado.
-
-## 6. Modelo de dados, para quando houver banco
-
-```
-users(id, email, password_hash, display_name, avatar_url, role, created_at)
-works(id, type, title, synopsis, cover_url, status)
-chapters(id, work_id, number, title, content_md, is_premium, status, published_at)
-reading_progress(user_id, chapter_id, position, finished_at)
-items(id, code, name, type, rarity, image_url, description, lore_ref)
-chapter_items(chapter_id, item_id)
-user_items(user_id, item_id, collected_at, chapter_id)
-```
-
-Amigos, conquistas e assinatura entram nas tabelas só na fase em que a tela existir.
-
-## 7. Cuidados
-
-- Coleta e “posição no ranking” só com regra no servidor.
-- Imagens pesadas (há capas com mais de 2 MB) precisam de versão leve antes do lançamento. WebP no Cloudflare R2 quando houver hospedagem de arquivo.
-- Backup do Postgres no Supabase no dia em que o banco estiver em uso.
-- A interface não publica contato pessoal nem chave Pix.
+O projeto gratuito do Supabase pausa depois de uma semana sem uso. Mobile, por enquanto, é o site responsivo. Loja de aplicativo fica para o jogo.

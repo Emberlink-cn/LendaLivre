@@ -1,3 +1,4 @@
+import { atmospheresOf, imageFrameOf } from '../data/cardTraits'
 import { supabase } from './supabase'
 
 const IMAGE_TYPES = {
@@ -175,14 +176,21 @@ export async function removeChapterRecord(dbId) {
   await wrote(Promise.resolve(removed))
 }
 
-function itemRow(item, imageId, clearImage) {
+function missingItemColumns(error) {
+  const message = String(error?.message || '')
+  return /atmospheres|image_zoom|image_x|image_y|schema cache/i.test(message)
+}
+
+function itemRow(item, imageId, clearImage, extended) {
   const stats = item.stats || {}
+  const moods = atmospheresOf(item)
+  const frame = imageFrameOf(item)
   const row = {
     name: item.name,
     word: item.word,
     type: item.type,
     rarity: item.rarity || 'comum',
-    atmosphere: item.atmosphere || '',
+    atmosphere: moods.join(' · '),
     frame: item.frame || null,
     passive: item.passive || '',
     energia: Number(stats.energia) || 0,
@@ -192,6 +200,12 @@ function itemRow(item, imageId, clearImage) {
     azar: Number(stats.azar) || 0,
     published_at: publishedNow(),
     removed_at: null,
+  }
+  if (extended) {
+    row.atmospheres = moods
+    row.image_zoom = frame.zoom
+    row.image_x = frame.x
+    row.image_y = frame.y
   }
   if (clearImage) row.image_id = null
   if (imageId) row.image_id = imageId
@@ -210,17 +224,16 @@ async function linkItem(chapterDbId, itemId, position) {
 
 export async function saveItemRecord({ chapterDbId, item, position }) {
   const imageId = await storeImage(item.image, `itens/${item.id}`)
-  const row = itemRow(item, imageId, item.image === '')
   const existing = await supabase.from('items').select('id').eq('id', item.id).maybeSingle()
   fail(existing.error)
-  if (existing.data) {
-    const updated = await supabase.from('items').update(row).eq('id', item.id).select('id')
-    await wrote(Promise.resolve(updated))
-    if (chapterDbId) await linkItem(chapterDbId, item.id, position)
-    return
+  const write = (extended) => {
+    const row = itemRow(item, imageId, item.image === '', extended)
+    if (existing.data) return supabase.from('items').update(row).eq('id', item.id).select('id')
+    return supabase.from('items').insert({ id: item.id, ...row }).select('id')
   }
-  const inserted = await supabase.from('items').insert({ id: item.id, ...row }).select('id')
-  await wrote(Promise.resolve(inserted))
+  let saved = await write(true)
+  if (saved.error && missingItemColumns(saved.error)) saved = await write(false)
+  await wrote(Promise.resolve(saved))
   if (chapterDbId) await linkItem(chapterDbId, item.id, position)
 }
 

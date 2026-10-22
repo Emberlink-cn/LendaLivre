@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext'
 import SearchToggle from '../../components/common/SearchToggle'
 import { useLibrary } from '../../context/LibraryContext'
 import { ATMOSPHERES } from '../../data/catalog'
-import { ATTRIBUTES, EMPTY_STATS, FRAMES, RARITIES, faceStats, presentCard } from '../../data/cardTraits'
+import { ATTRIBUTES, EMPTY_STATS, FRAMES, RARITIES, faceStats, imageFrameOf, presentCard } from '../../data/cardTraits'
 import styles from './CreatorPage.module.css'
 
 const TYPES = [
@@ -31,6 +31,9 @@ const TYPES = [
   { id: 'texto', label: 'Texto' },
   { id: 'veiculo', label: 'Veículo' },
   { id: 'vestimenta', label: 'Vestimenta' },
+  { id: 'local', label: 'Local' },
+  { id: 'personagem', label: 'Personagem' },
+  { id: 'montaria', label: 'Montaria' },
 ]
 
 function ChoiceField({ label, value, options, onChange }) {
@@ -384,7 +387,6 @@ function NewWork({ works, addWork, onDone }) {
   const [chapterTitle, setChapterTitle] = useState('')
   const [text, setText] = useState('')
   const [cover, setCover] = useState('')
-  const [moods, setMoods] = useState([])
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -417,7 +419,6 @@ function NewWork({ works, addWork, onDone }) {
         id,
         title: workTitle,
         line: line.trim() || 'Obra adicionada pelo criador.',
-        moods,
         cover,
         chapters: [
           {
@@ -426,7 +427,7 @@ function NewWork({ works, addWork, onDone }) {
             name: chapterTitle.trim() || workTitle,
             title: chapterTitle.trim() || workTitle,
             line: '',
-            moods: [...moods],
+            moods: [],
             cover,
             paragraphs,
           },
@@ -437,7 +438,6 @@ function NewWork({ works, addWork, onDone }) {
       setChapterTitle('')
       setText('')
       setCover('')
-      setMoods([])
       onDone(`Obra “${workTitle}” publicada no catálogo.`)
     } catch (err) {
       setError(err.message)
@@ -456,7 +456,6 @@ function NewWork({ works, addWork, onDone }) {
         Linha de apresentação
         <input value={line} onChange={(event) => setLine(event.target.value)} />
       </label>
-      <AtmosphereField value={moods} onChange={setMoods} />
       <label>
         Título do capítulo
         <input value={chapterTitle} onChange={(event) => setChapterTitle(event.target.value)} />
@@ -799,7 +798,10 @@ const EMPTY_DRAFT = {
   name: '',
   type: 'relic',
   image: '',
-  atmosphere: '',
+  atmospheres: [],
+  imageZoom: 1,
+  imageX: 50,
+  imageY: 50,
   rarity: 'comum',
   frame: 'gold',
   stats: { ...EMPTY_STATS },
@@ -819,7 +821,8 @@ function ItemManager({ workId, chapterId, chapterTitle, items, library, onDone }
     ? items.filter((item) => {
         const typeLabel = TYPES.find((option) => option.id === item.type)?.label || ''
         const rarity = RARITIES.find((option) => option.id === item.rarity)?.label || ''
-        return foldText(`${item.name} ${item.word} ${typeLabel} ${item.atmosphere || ''} ${rarity} ${item.passive || ''}`).includes(needle)
+        const moods = presentCard(item).atmospheres.join(' ')
+        return foldText(`${item.name} ${item.word} ${typeLabel} ${moods} ${rarity} ${item.passive || ''}`).includes(needle)
       })
     : items
 
@@ -839,7 +842,10 @@ function ItemManager({ workId, chapterId, chapterTitle, items, library, onDone }
       name: item.name || '',
       type: item.type || 'relic',
       image: item.image || '',
-      atmosphere: card.atmosphere,
+      atmospheres: card.atmospheres,
+      imageZoom: card.imageZoom,
+      imageX: card.imageX,
+      imageY: card.imageY,
       rarity: card.rarity,
       frame: card.frame,
       stats: { ...card.stats },
@@ -865,7 +871,7 @@ function ItemManager({ workId, chapterId, chapterTitle, items, library, onDone }
   function onDraftFile(event) {
     const file = event.target.files?.[0]
     event.target.value = ''
-    readImage(file, (image) => setDraft((current) => ({ ...current, image })), setDraftError)
+    readImage(file, (image) => setDraft((current) => ({ ...current, image, imageZoom: 1, imageX: 50, imageY: 50 })), setDraftError)
   }
 
   async function submitItem(event) {
@@ -879,7 +885,11 @@ function ItemManager({ workId, chapterId, chapterTitle, items, library, onDone }
       name: draft.name.trim(),
       type: draft.type,
       image: draft.image,
-      atmosphere: draft.atmosphere,
+      atmospheres: draft.atmospheres,
+      atmosphere: draft.atmospheres.join(' · '),
+      imageZoom: draft.imageZoom,
+      imageX: draft.imageX,
+      imageY: draft.imageY,
       rarity: draft.rarity,
       frame: draft.frame,
       stats: draft.stats,
@@ -953,6 +963,7 @@ function ItemManager({ workId, chapterId, chapterTitle, items, library, onDone }
                   <Card
                     title={preview.name}
                     image={draft.image}
+                    imageFrame={imageFrameOf(draft)}
                     fallback={<ItemIcon type={draft.type} />}
                     type={typeLabel}
                     origin={chapterTitle || 'LendaLivre'}
@@ -975,15 +986,12 @@ function ItemManager({ workId, chapterId, chapterTitle, items, library, onDone }
                     Tipo
                     <TypeField value={draft.type} onChange={(type) => setDraft((current) => ({ ...current, type }))} />
                   </label>
-                  <label>
-                    Atmosfera
-                    <ChoiceField
-                      label="Atmosfera"
-                      value={draft.atmosphere}
-                      options={[{ id: '', label: 'Nenhuma' }, ...ATMOSPHERES.map((mood) => ({ id: mood, label: mood }))]}
-                      onChange={(atmosphere) => setDraft((current) => ({ ...current, atmosphere }))}
+                  <div className={styles.span2}>
+                    <AtmosphereField
+                      value={draft.atmospheres}
+                      onChange={(atmospheres) => setDraft((current) => ({ ...current, atmospheres }))}
                     />
-                  </label>
+                  </div>
                   <label>
                     Raridade
                     <ChoiceField
@@ -1006,6 +1014,43 @@ function ItemManager({ workId, chapterId, chapterTitle, items, library, onDone }
                     Imagem do item
                     <input key={editingId || 'novo'} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={onDraftFile} />
                   </label>
+                  {draft.image ? (
+                    <div className={`${styles.frameTune} ${styles.span2}`}>
+                      <label>
+                        Zoom
+                        <input
+                          type="range"
+                          min="1"
+                          max="3"
+                          step="0.05"
+                          value={draft.imageZoom}
+                          onChange={(event) => setDraft((current) => ({ ...current, imageZoom: Number(event.target.value) }))}
+                        />
+                      </label>
+                      <label>
+                        Horizontal
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value={draft.imageX}
+                          onChange={(event) => setDraft((current) => ({ ...current, imageX: Number(event.target.value) }))}
+                        />
+                      </label>
+                      <label>
+                        Vertical
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value={draft.imageY}
+                          onChange={(event) => setDraft((current) => ({ ...current, imageY: Number(event.target.value) }))}
+                        />
+                      </label>
+                    </div>
+                  ) : null}
                   <label className={styles.span2}>
                     Habilidade passiva
                     <input
@@ -1032,7 +1077,7 @@ function ItemManager({ workId, chapterId, chapterTitle, items, library, onDone }
                   {draft.image ? (
                     <div className={`${styles.extra} ${styles.span2}`}>
                       <ItemVisual item={{ image: draft.image, type: draft.type }} size={42} />
-                      <button type="button" className={styles.ghost} onClick={() => setDraft((current) => ({ ...current, image: '' }))}>
+                      <button type="button" className={styles.ghost} onClick={() => setDraft((current) => ({ ...current, image: '', imageZoom: 1, imageX: 50, imageY: 50 }))}>
                         Remover imagem
                       </button>
                     </div>

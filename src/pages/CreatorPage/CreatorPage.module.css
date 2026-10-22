@@ -522,6 +522,25 @@
   grid-column: 1 / -1;
 }
 
+.frameTune {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.frameTune label {
+  display: grid;
+  grid-template-columns: 6.2rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.frameTune input[type='range'] {
+  width: 100%;
+  accent-color: var(--gold);
+}
+
 
 @media (min-width: 980px) {
   .rowHit {

@@ -37,6 +37,36 @@ export const TYPE_FRAME = {
   relic: 'gold',
   vestimenta: 'white',
   texto: 'white',
+  local: 'white',
+  personagem: 'gold',
+  montaria: 'green',
+}
+
+function clamp(value, min, max, fallback) {
+  const number = Number(value)
+  if (!Number.isFinite(number)) return fallback
+  return Math.min(max, Math.max(min, number))
+}
+
+export function atmospheresOf(item = {}) {
+  if (Array.isArray(item.atmospheres) && item.atmospheres.length) {
+    return item.atmospheres.map((mood) => String(mood).trim()).filter(Boolean)
+  }
+  if (Array.isArray(item.atmosphere) && item.atmosphere.length) {
+    return item.atmosphere.map((mood) => String(mood).trim()).filter(Boolean)
+  }
+  return String(item.atmosphere || '')
+    .split('·')
+    .map((mood) => mood.trim())
+    .filter(Boolean)
+}
+
+export function imageFrameOf(item = {}) {
+  return {
+    zoom: clamp(item.imageZoom ?? item.image_zoom, 1, 3, 1),
+    x: clamp(item.imageX ?? item.image_x, 0, 100, 50),
+    y: clamp(item.imageY ?? item.image_y, 0, 100, 50),
+  }
 }
 
 export const EMPTY_STATS = {
@@ -61,12 +91,18 @@ export function presentCard(item = {}) {
     const value = Number(stats[key])
     stats[key] = Number.isFinite(value) ? value : 0
   }
+  const atmospheres = atmospheresOf(item)
+  const frame = imageFrameOf(item)
   return {
     ...item,
-    atmosphere: item.atmosphere || '',
+    atmospheres,
+    atmosphere: atmospheres.join(' · '),
     rarity: item.rarity || 'comum',
     frame: item.frame || TYPE_FRAME[item.type] || 'gold',
     passive: item.passive || '',
+    imageZoom: frame.zoom,
+    imageX: frame.x,
+    imageY: frame.y,
     stats,
   }
 }
@@ -80,7 +116,7 @@ export function faceStats(card) {
 
 export function matchesCardFilters(item, filters) {
   const card = presentCard(item)
-  if (filters.atmosphere && card.atmosphere !== filters.atmosphere) return false
+  if (filters.atmosphere && !card.atmospheres.includes(filters.atmosphere)) return false
   if (filters.type && item.type !== filters.type) return false
   if (filters.rarity && card.rarity !== filters.rarity) return false
   if (filters.frame && card.frame !== filters.frame) return false

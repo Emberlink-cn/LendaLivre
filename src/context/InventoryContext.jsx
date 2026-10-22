@@ -43,6 +43,10 @@ function cardFromRow(row) {
     type: item.type,
     rarity: item.rarity || 'comum',
     atmosphere: item.atmosphere || '',
+    ...(Array.isArray(item.atmospheres) ? { atmospheres: item.atmospheres } : {}),
+    ...(item.image_zoom == null ? {} : { imageZoom: item.image_zoom }),
+    ...(item.image_x == null ? {} : { imageX: item.image_x }),
+    ...(item.image_y == null ? {} : { imageY: item.image_y }),
     ...(item.frame ? { frame: item.frame } : {}),
     ...(image ? { image } : {}),
     passive: item.passive || '',
@@ -60,7 +64,14 @@ function cardFromRow(row) {
 }
 
 const ITEM_COLUMNS =
+  'collected_at, items(id, name, word, type, rarity, atmosphere, atmospheres, image_zoom, image_x, image_y, frame, passive, energia, ataque, defesa, sorte, azar, image:media!items_image_id_fkey(bucket, path)), chapters(name, works(title))'
+const ITEM_COLUMNS_BASIC =
   'collected_at, items(id, name, word, type, rarity, atmosphere, frame, passive, energia, ataque, defesa, sorte, azar, image:media!items_image_id_fkey(bucket, path)), chapters(name, works(title))'
+
+function missingItemColumns(error) {
+  const message = String(error?.message || '')
+  return /atmospheres|image_zoom|image_x|image_y|schema cache/i.test(message)
+}
 
 function rememberedItems(userId) {
   const own = load(userId)
@@ -71,7 +82,10 @@ function rememberedItems(userId) {
 }
 
 async function readAccountItems(accountId) {
-  const listed = await supabase.from('user_items').select(ITEM_COLUMNS).eq('user_id', accountId)
+  let listed = await supabase.from('user_items').select(ITEM_COLUMNS).eq('user_id', accountId)
+  if (listed.error && missingItemColumns(listed.error)) {
+    listed = await supabase.from('user_items').select(ITEM_COLUMNS_BASIC).eq('user_id', accountId)
+  }
   if (listed.error) return null
   return (listed.data ?? []).map(cardFromRow).filter(Boolean)
 }

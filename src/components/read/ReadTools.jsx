@@ -326,9 +326,11 @@ function CollectFlight({ item, workTitle, onDone }) {
         <Card
           title={card.name}
           image={card.image}
+          imageFrame={{ zoom: card.imageZoom, x: card.imageX, y: card.imageY }}
           fallback={<ItemVisual item={card} />}
           type={card.type}
           origin={workTitle}
+          description={card.passive.trim() || undefined}
           color={card.frame}
           stats={faceStats(card)}
         />

@@ -1,7 +1,6 @@
-# 04 · Jogo Mobile Vertical (Fase 2)
+# 04 · Jogo Mobile Vertical — ideia antiga
 
-> Depende de: `00-nucleo-universo.md` e de o LendaLivre já ter capítulos publicados.
-> A primeira prova responde uma pergunta: o duelo de três turnos, com essa câmera, é divertido?
+> A direção atual está em `02-app-leitura.md`, seção 6. O jogo mobile previsto agora serve só para evoluir o nível das cartas coletadas no livro. Este arquivo guarda o duelo em feed vertical. Não é o próximo passo.
 
 ## 1. Conceito em uma frase
 
