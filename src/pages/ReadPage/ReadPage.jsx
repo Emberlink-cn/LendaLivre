@@ -1,9 +1,17 @@
-import { useEffect, useLayoutEffect } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import ReadTools from '../../components/read/ReadTools'
+import { useAuth } from '../../context/AuthContext'
 import { useLibrary } from '../../context/LibraryContext'
 import { legacyRead } from '../../data/catalog'
 import { useReading } from '../../context/ReadingContext'
+import {
+  captureReadingSpot,
+  chapterSpot,
+  rememberOpenChapter,
+  revealReadingSpot,
+  saveChapterSpot,
+} from '../../lib/readingPlace'
 import styles from './ReadPage.module.css'
 
 function isMusicMark(text) {
@@ -34,7 +42,7 @@ function ChapterBody({ paragraphs }) {
       .filter(Boolean)
       .join(' ')
     return (
-      <p key={`${index}-${paragraph.slice(0, 24)}`} className={className || undefined}>
+      <p key={`${index}-${paragraph.slice(0, 24)}`} className={className || undefined} data-read-paragraph={index}>
         {renderText(paragraph)}
       </p>
     )
@@ -47,19 +55,70 @@ export default function ReadPage() {
   const legacy = getWork(workId) ? null : legacyRead(workId, chapterId)
   const work = getWork(workId)
   const chapter = work?.chapters.find((item) => item.id === chapterId) ?? null
+  const { user } = useAuth()
   const { fontScale, remember } = useReading()
+  const allowSave = useRef(false)
+  const restoredY = useRef(0)
 
   useEffect(() => {
     document.title = chapter ? `${chapter.title} · LendaLivre` : 'Leitura · LendaLivre'
   }, [chapter])
 
   useLayoutEffect(() => {
-    window.scrollTo(0, 0)
-  }, [workId, chapterId])
+    allowSave.current = false
+    const spot = chapterSpot(user?.id, workId, chapterId)
+    revealReadingSpot(spot)
+    restoredY.current = window.scrollY
+    allowSave.current = true
+    if (user?.id && workId && chapterId) rememberOpenChapter(user.id, workId, chapterId)
+  }, [workId, chapterId, user?.id, chapter?.paragraphs?.length])
+
+  useEffect(() => {
+    if (!user?.id || !workId || !chapterId) return undefined
+    let alive = true
+    document.fonts?.ready.then(() => {
+      if (!alive || !allowSave.current) return
+      if (Math.abs(window.scrollY - restoredY.current) > 24) return
+      allowSave.current = false
+      revealReadingSpot(chapterSpot(user.id, workId, chapterId))
+      restoredY.current = window.scrollY
+      allowSave.current = true
+    })
+    return () => {
+      alive = false
+    }
+  }, [workId, chapterId, user?.id, chapter?.paragraphs?.length])
 
   useEffect(() => {
     if (workId && chapterId) remember(workId, chapterId, chapter?.dbId)
   }, [workId, chapterId, chapter?.dbId, remember])
+
+  useEffect(() => {
+    if (!user?.id || !workId || !chapterId) return undefined
+    const userId = user.id
+    const save = () => {
+      if (!allowSave.current) return
+      saveChapterSpot(userId, workId, chapterId, captureReadingSpot())
+    }
+    let timer = 0
+    const onScroll = () => {
+      if (!allowSave.current) return
+      window.clearTimeout(timer)
+      timer = window.setTimeout(save, 180)
+    }
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') save()
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('pagehide', save)
+    return () => {
+      window.clearTimeout(timer)
+      window.removeEventListener('scroll', onScroll)
+      document.removeEventListener('visibilitychange', onHide)
+      window.removeEventListener('pagehide', save)
+    }
+  }, [user?.id, workId, chapterId])
 
   if (legacy) return <Navigate to={`/ler/${legacy.workId}/${legacy.chapterId}`} replace />
 

@@ -1,6 +1,8 @@
-import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import Shell from '../components/layout/Shell'
 import { useAuth } from '../context/AuthContext'
+import { bootResume, clearResume } from '../lib/readingPlace'
 import CatalogPage from '../pages/CatalogPage/CatalogPage'
 import CreatorPage from '../pages/CreatorPage/CreatorPage'
 import HomePage from '../pages/HomePage/HomePage'
@@ -10,6 +12,41 @@ import ProfilePage from '../pages/ProfilePage/ProfilePage'
 import ReadPage from '../pages/ReadPage/ReadPage'
 import RegisterPage from '../pages/RegisterPage/RegisterPage'
 import WorkPage from '../pages/WorkPage/WorkPage'
+
+const openedAtHome = window.location.pathname === '/'
+let entrySettled = !openedAtHome
+
+function HomeEntry() {
+  const { isAuthenticated, ready, user } = useAuth()
+  const navigate = useNavigate()
+  const [settled, setSettled] = useState(entrySettled)
+
+  useEffect(() => {
+    if (!ready || entrySettled) return
+    entrySettled = true
+    if (isAuthenticated) {
+      navigate(bootResume(user?.id) || '/catalogo', { replace: true })
+      return
+    }
+    setSettled(true)
+  }, [ready, isAuthenticated, user?.id, navigate])
+
+  if (!settled && (!ready || isAuthenticated)) return null
+  return <HomePage />
+}
+
+function ResumeRoute() {
+  const { pathname } = useLocation()
+  const { user } = useAuth()
+  const reader = pathname.startsWith('/ler/')
+
+  useEffect(() => {
+    if (!entrySettled || reader || !user?.id || document.visibilityState === 'hidden') return
+    clearResume(user.id)
+  }, [reader, user?.id])
+
+  return null
+}
 
 function RequireAuth() {
   const { isAuthenticated, ready } = useAuth()
@@ -22,8 +59,9 @@ function RequireAuth() {
 export function AppRoutes() {
   return (
     <Shell>
+      <ResumeRoute />
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<HomeEntry />} />
         <Route path="/entrar" element={<LoginPage />} />
         <Route path="/criar-conta" element={<RegisterPage />} />
         <Route path="/login" element={<Navigate to="/entrar" replace />} />

@@ -3,12 +3,24 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import styles from './AuthPage.module.css'
 
+const EMAIL_KEY = 'lendalivre_login_email'
+
+function rememberedEmail() {
+  try {
+    return localStorage.getItem(EMAIL_KEY) || ''
+  } catch {
+    return ''
+  }
+}
+
 export default function LoginPage() {
   const { login, isAuthenticated, ready } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const from = location.state?.from?.pathname || '/catalogo'
-  const [email, setEmail] = useState('')
+  const storedEmail = rememberedEmail()
+  const [email, setEmail] = useState(storedEmail)
+  const [rememberEmail, setRememberEmail] = useState(Boolean(storedEmail))
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -22,10 +34,20 @@ export default function LoginPage() {
     if (ready && isAuthenticated) navigate(from, { replace: true })
   }, [ready, isAuthenticated, from, navigate, location.state])
 
+  function storeEmail(nextRemember, value) {
+    try {
+      if (nextRemember) localStorage.setItem(EMAIL_KEY, value.trim())
+      else localStorage.removeItem(EMAIL_KEY)
+    } catch {
+      /* o campo continua preenchido nesta visita */
+    }
+  }
+
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
     setLoading(true)
+    storeEmail(rememberEmail, email)
     try {
       await login(email, password)
       navigate(from, { replace: true })
@@ -61,6 +83,18 @@ export default function LoginPage() {
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
+        </label>
+        <label className={styles.remember}>
+          <input
+            type="checkbox"
+            checked={rememberEmail}
+            onChange={(event) => {
+              const next = event.target.checked
+              setRememberEmail(next)
+              if (!next) storeEmail(false, email)
+            }}
+          />
+          Lembrar e-mail
         </label>
         {error ? <p className={styles.error}>{error}</p> : null}
         <button type="submit" className={styles.submit} disabled={loading}>
