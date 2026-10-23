@@ -49,9 +49,18 @@ async function loadItems() {
   return full
 }
 
+async function loadWorkRows() {
+  const full = await supabase
+    .from('works')
+    .select('id, title, line, collects, cover:media!works_cover_id_fkey(bucket, path)')
+  if (!full.error) return full
+  if (!/collects|schema cache/i.test(String(full.error.message || ''))) return full
+  return supabase.from('works').select('id, title, line, cover:media!works_cover_id_fkey(bucket, path)')
+}
+
 export async function loadRemoteWorks() {
   const [worksRes, chaptersRes, itemsRes, linksRes, tracksRes] = await Promise.all([
-    supabase.from('works').select('id, title, line, cover:media!works_cover_id_fkey(bucket, path)'),
+    loadWorkRows(),
     supabase.from('chapters').select('id, work_id, slug, source_key, number, name, title, line, paragraphs, note, moods, cover:media!chapters_cover_id_fkey(bucket, path)'),
     loadItems(),
     supabase.from('chapter_items').select('chapter_id, item_id, position'),
@@ -59,7 +68,6 @@ export async function loadRemoteWorks() {
   ])
   if ([worksRes, chaptersRes, itemsRes, linksRes, tracksRes].some((result) => result.error)) return null
   const works = worksRes.data ?? []
-  if (!works.length) return null
 
   const itemsById = new Map(
     (itemsRes.data ?? []).filter((item) => !item.removed_at).map((item) => [item.id, asItem(item)]),
@@ -104,6 +112,7 @@ export async function loadRemoteWorks() {
       line: work.line ?? '',
       file: local?.file || null,
       cover: mediaUrl(work.cover),
+      collects: work.collects ?? work.id === 'terras',
       moods: [],
       chapters,
       fromDatabase: true,

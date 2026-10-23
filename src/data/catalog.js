@@ -152,6 +152,7 @@ export const WORKS = [
   {
     id: 'terras',
     title: 'Terras Invisíveis',
+    collects: true,
     file: 'cardbook.jpg',
     line: 'Xipaia, a mata e o que a areia esconde. Os capítulos desta terra.',
     moods: [],

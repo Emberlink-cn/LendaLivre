@@ -52,6 +52,7 @@ export default function ReadTools({ work, chapter, children }) {
   const [freeLeft, setFreeLeft] = useState(0)
   const dockRef = useRef(null)
   const items = chapter.items ?? []
+  const canCollect = work?.collects === true
   const tracks = chapter.tracks?.length ? chapter.tracks : chapter.music ? [chapter.music] : []
 
   useEffect(() => {
@@ -70,6 +71,10 @@ export default function ReadTools({ work, chapter, children }) {
       window.removeEventListener('resize', measure)
     }
   }, [wide])
+
+  useEffect(() => {
+    if (!canCollect) setOpen((current) => (current === 'itens' ? null : current))
+  }, [canCollect])
 
   function togglePaper() {
     setPaper((value) => {
@@ -95,6 +100,7 @@ export default function ReadTools({ work, chapter, children }) {
   }, [open, chooser])
 
   function choose(tool) {
+    if (tool === 'itens' && !canCollect) return
     setChooser(false)
     setOpen((current) => (current === tool ? null : tool))
   }
@@ -173,9 +179,11 @@ export default function ReadTools({ work, chapter, children }) {
                 </button>
                 {chooser && !open ? (
                   <div className={styles.chooser}>
-                    <button type="button" className={styles.floatBtn} onClick={() => choose('itens')}>
-                      Itens
-                    </button>
+                    {canCollect ? (
+                      <button type="button" className={styles.floatBtn} onClick={() => choose('itens')}>
+                        Itens
+                      </button>
+                    ) : null}
                     <button type="button" className={styles.floatBtn} onClick={() => choose('musica')}>
                       Música
                     </button>
@@ -190,9 +198,11 @@ export default function ReadTools({ work, chapter, children }) {
 
       <aside ref={dockRef} className={styles.dock} aria-label="Ferramentas da leitura">
         <div className={styles.strip}>
-          <button type="button" className={open === 'itens' ? styles.stripOn : undefined} onClick={() => choose('itens')}>
-            Itens
-          </button>
+          {canCollect ? (
+            <button type="button" className={open === 'itens' ? styles.stripOn : undefined} onClick={() => choose('itens')}>
+              Itens
+            </button>
+          ) : null}
           <button type="button" className={open === 'musica' ? styles.stripOn : undefined} onClick={() => choose('musica')}>
             Música
           </button>

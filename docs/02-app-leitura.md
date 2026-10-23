@@ -35,14 +35,14 @@ Front: React + Vite. Hospedagem: Cloudflare Pages.
 - Obra não tem atmosfera. Atmosfera fica no capítulo e no item
 - Trilha sonora no capítulo
 - Último capítulo lido acompanha a conta
+- Excluir obra: capítulos e músicas saem; item que não restar em outro capítulo é retirado do catálogo; a coleta na conta permanece, mas some da grade
+- Coleta só na obra marcada. Terras Invisíveis é a única. Nas outras, a sala e a leitura não mostram itens
+- Papel `autor`: publica e exclui as próprias obras, capítulos, capas e músicas. Itens continuam só do criador da casa, e só na obra com coleta. Virar autor continua pelo painel do banco
+- Carta coletada grava nível 1. A ficha mostra o número. Evoluir fica para o jogo
 
 ### Falta nesta etapa
 
-- Excluir uma obra. Hoje dá para criar, editar e excluir capítulo, item e trilha, mas a obra em si não sai
-- Marcar quais obras podem ter itens e cartas. Hoje a sala do criador oferece isso para qualquer obra
-- Autor comum, separado do criador da casa: publica texto e música, sem itens, cartas, inventário e jogo
-- Carta coletada começa no nível 1. O número ainda não existe na coleta
-- Enviar ao banco as colunas novas de atmosfera múltipla e de enquadramento da imagem
+- Enviar a migration nova (`obra_autor_nivel`) para o banco passar a gravar coleta, autor e nível
 - Completar os capítulos do livro que ainda estão sem texto
 - Domínio próprio
 
@@ -52,10 +52,9 @@ Fora desta etapa, de propósito: jogos, amigos, conquistas, assinatura, ranking 
 
 Ainda sem jogo.
 
-1. Excluir obra, com os capítulos, as trilhas e os vínculos. Item já coletado não pode sumir da conta de quem o tem sem uma decisão explícita.
-2. A obra do livro é a única com coleta. Nas outras, a sala do criador mostra texto, capa e música.
-3. Papel de autor para quem publica a própria história. O criador da casa continua podendo publicar itens e cartas na obra do livro.
-4. Guardar `nível 1` em cada carta coletada. A tela pode mostrar o nível. Evoluir fica para o jogo mobile.
+O código de exclusão de obra, da coleta só no livro, do papel de autor e do nível 1 já está no app. O banco só passa a aceitar isso depois do envio da migration `20261022210000_obra_autor_nivel.sql`.
+
+Depois disso, nesta etapa: completar os capítulos sem texto e o domínio próprio.
 
 ## 4. O que cada pessoa faz
 

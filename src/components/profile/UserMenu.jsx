@@ -6,7 +6,8 @@ import { Avatar } from '../common/Marks'
 import styles from './UserMenu.module.css'
 
 export default function UserMenu({ variant = 'bar', onNavigate }) {
-  const { user, logout, isSuper } = useAuth()
+  const { user, logout, isSuper, isAuthor } = useAuth()
+  const canPublish = isSuper || isAuthor
   const { theme, setTheme } = useTheme()
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -48,7 +49,7 @@ export default function UserMenu({ variant = 'bar', onNavigate }) {
         <Link to="/inventario" className={styles.drawerLink} onClick={onNavigate}>
           Inventário
         </Link>
-        {isSuper ? (
+        {canPublish ? (
           <Link to="/criador" className={styles.drawerLink} onClick={onNavigate}>
             Painel do criador
           </Link>
@@ -95,7 +96,7 @@ export default function UserMenu({ variant = 'bar', onNavigate }) {
           <Link to="/inventario" role="menuitem">
             Inventário
           </Link>
-          {isSuper ? (
+          {canPublish ? (
             <Link to="/criador" role="menuitem">
               Painel do criador
             </Link>

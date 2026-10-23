@@ -60,17 +60,20 @@ function cardFromRow(row) {
     workTitle: row.chapters?.works?.title || '',
     chapterTitle: row.chapters?.name || '',
     collectedAt: row.collected_at,
+    level: row.level ?? 1,
   }
 }
 
 const ITEM_COLUMNS =
+  'collected_at, level, items(id, name, word, type, rarity, atmosphere, atmospheres, image_zoom, image_x, image_y, frame, passive, energia, ataque, defesa, sorte, azar, image:media!items_image_id_fkey(bucket, path)), chapters(name, works(title))'
+const ITEM_COLUMNS_NO_LEVEL =
   'collected_at, items(id, name, word, type, rarity, atmosphere, atmospheres, image_zoom, image_x, image_y, frame, passive, energia, ataque, defesa, sorte, azar, image:media!items_image_id_fkey(bucket, path)), chapters(name, works(title))'
 const ITEM_COLUMNS_BASIC =
   'collected_at, items(id, name, word, type, rarity, atmosphere, frame, passive, energia, ataque, defesa, sorte, azar, image:media!items_image_id_fkey(bucket, path)), chapters(name, works(title))'
 
 function missingItemColumns(error) {
   const message = String(error?.message || '')
-  return /atmospheres|image_zoom|image_x|image_y|schema cache/i.test(message)
+  return /atmospheres|image_zoom|image_x|image_y|level|schema cache/i.test(message)
 }
 
 function rememberedItems(userId) {
@@ -82,9 +85,10 @@ function rememberedItems(userId) {
 }
 
 async function readAccountItems(accountId) {
-  let listed = await supabase.from('user_items').select(ITEM_COLUMNS).eq('user_id', accountId)
-  if (listed.error && missingItemColumns(listed.error)) {
-    listed = await supabase.from('user_items').select(ITEM_COLUMNS_BASIC).eq('user_id', accountId)
+  let listed = null
+  for (const columns of [ITEM_COLUMNS, ITEM_COLUMNS_NO_LEVEL, ITEM_COLUMNS_BASIC]) {
+    listed = await supabase.from('user_items').select(columns).eq('user_id', accountId)
+    if (!listed.error || !missingItemColumns(listed.error)) break
   }
   if (listed.error) return null
   return (listed.data ?? []).map(cardFromRow).filter(Boolean)

@@ -267,7 +267,8 @@ function AtmosphereField({ value, onChange }) {
 }
 
 export default function CreatorPage() {
-  const { isAuthenticated, isSuper, ready } = useAuth()
+  const { isAuthenticated, isSuper, isAuthor, ready } = useAuth()
+  const canPublish = isSuper || isAuthor
   const library = useLibrary()
   const navigate = useNavigate()
   const splat = useParams()['*'] ?? ''
@@ -291,11 +292,11 @@ export default function CreatorPage() {
 
   if (!ready) return null
   if (!isAuthenticated) return <Navigate to="/entrar" replace state={{ from: { pathname: '/criador' } }} />
-  if (!isSuper) {
+  if (!canPublish) {
     return (
       <div className={styles.page}>
         <h1>Painel do criador</h1>
-        <p>Esta sala é só da conta de criador.</p>
+        <p>Esta sala é de quem publica histórias.</p>
       </div>
     )
   }
@@ -304,8 +305,11 @@ export default function CreatorPage() {
 
   const work = workId ? library.works.find((item) => item.id === workId) ?? null : null
   const chapter = work?.chapters.find((item) => item.id === chapterId) ?? null
+  const canEditItems = isSuper && Boolean(work?.collects)
+  const tabs = TABS.filter((item) => item.id !== 'itens' || canEditItems)
+  const shownTab = tab === 'itens' && !canEditItems ? 'texto' : tab
 
-  const listPage = (section === 'gerir' && !onChapter && !onWork) || (onChapter && (tab === 'itens' || tab === 'musicas'))
+  const listPage = (section === 'gerir' && !onChapter && !onWork) || (onChapter && (shownTab === 'itens' || shownTab === 'musicas'))
 
   return (
     <div className={listPage ? `${styles.page} ${styles.pageFill}` : styles.page}>
@@ -315,12 +319,12 @@ export default function CreatorPage() {
           <h1>{chapter?.title || work?.title || 'Capítulo não encontrado'}</h1>
           {work ? (
             <nav className={styles.modes} aria-label="Conteúdo do capítulo">
-              {TABS.map((item) => (
+              {tabs.map((item) => (
                 <button
                   key={item.id}
                   type="button"
-                  className={tab === item.id ? styles.modeOn : styles.mode}
-                  aria-current={tab === item.id ? 'page' : undefined}
+                  className={shownTab === item.id ? styles.modeOn : styles.mode}
+                  aria-current={shownTab === item.id ? 'page' : undefined}
                   onClick={() => setTab(item.id)}
                 >
                   {item.label}
@@ -336,7 +340,7 @@ export default function CreatorPage() {
         </header>
       ) : (
         <header className={styles.head}>
-          <p className={styles.eyebrow}>Superusuário</p>
+          <p className={styles.eyebrow}>{isSuper ? 'Superusuário' : 'Autor'}</p>
           <h1>Painel do criador</h1>
           {section === 'gerir' ? (
             <SearchToggle
@@ -370,7 +374,7 @@ export default function CreatorPage() {
           workId={workId}
           chapterId={chapterId}
           chapter={chapter}
-          tab={tab}
+          tab={shownTab}
           library={library}
           onDone={setNotice}
           onRemoved={() => navigate(`/criador/gerir/${workId}`)}
@@ -511,6 +515,7 @@ function WorkEditor({ work, library, onDone }) {
   const [cover, setCover] = useState(work.cover || '')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [seenId, setSeenId] = useState(work.id)
 
   if (seenId !== work.id) {
@@ -519,6 +524,7 @@ function WorkEditor({ work, library, onDone }) {
     setLine(work.line || '')
     setCover(work.cover || '')
     setError('')
+    setConfirmDelete(false)
   }
 
   function onFile(event) {
@@ -541,6 +547,18 @@ function WorkEditor({ work, library, onDone }) {
     } catch (err) {
       setError(err.message)
     } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteWork() {
+    setSaving(true)
+    setError('')
+    try {
+      await library.removeWork(work.id)
+      navigate('/criador/gerir')
+    } catch (err) {
+      setError(err.message)
       setSaving(false)
     }
   }
@@ -598,6 +616,27 @@ function WorkEditor({ work, library, onDone }) {
         {cover ? <img src={cover} alt="" className={styles.preview} /> : null}
         {error ? <p className={styles.err}>{error}</p> : null}
         <button type="submit" disabled={saving}>{saving ? 'Salvando…' : 'Salvar obra'}</button>
+        {confirmDelete ? (
+          <p className={styles.err}>
+            Capítulos e músicas saem do catálogo. Cartas já coletadas deixam de aparecer no inventário.
+          </p>
+        ) : null}
+        <div className={styles.actions}>
+          {confirmDelete ? (
+            <>
+              <button type="button" className={styles.ghost} onClick={() => setConfirmDelete(false)}>
+                Cancelar
+              </button>
+              <button type="button" className={styles.danger} onClick={deleteWork} disabled={saving}>
+                Confirmar exclusão
+              </button>
+            </>
+          ) : (
+            <button type="button" className={styles.danger} onClick={() => setConfirmDelete(true)}>
+              Excluir obra
+            </button>
+          )}
+        </div>
       </form>
       <div className={`${styles.card} ${styles.stack}`}>
         <div className={styles.listHead}>

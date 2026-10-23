@@ -79,7 +79,7 @@ export default function ProfilePage() {
           <div>
             <strong>{user.name}</strong>
             <span>{user.email}</span>
-            <span>{user.role === 'super' ? 'Criador' : 'Leitor'}</span>
+            <span>{user.role === 'super' ? 'Criador' : user.role === 'autor' ? 'Autor' : 'Leitor'}</span>
           </div>
         </div>
         <label>

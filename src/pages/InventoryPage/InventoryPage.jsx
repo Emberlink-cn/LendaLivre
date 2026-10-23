@@ -85,6 +85,7 @@ function ownedCard(owned, source) {
     ...owned,
     ...source,
     collectedAt: owned.collectedAt,
+    level: owned.level ?? 1,
   }
 }
 
@@ -293,6 +294,12 @@ function FilterFields({ filters, onChange }) {
 function CardFacts({ card }) {
   return (
     <div className={styles.facts}>
+      {card.collectedAt ? (
+        <p>
+          <span>Nível</span>
+          <b>{card.level ?? 1}</b>
+        </p>
+      ) : null}
       <p>
         <span>Atmosfera</span>
         <b>{card.atmospheres.length ? card.atmospheres.join(' · ') : '—'}</b>

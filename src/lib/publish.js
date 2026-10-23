@@ -262,6 +262,33 @@ export async function saveTrackRecord({ chapterDbId, track, position }) {
   await wrote(Promise.resolve(inserted))
 }
 
+export async function removeWorkRecord(workId) {
+  const chapters = await supabase.from('chapters').select('id').eq('work_id', workId)
+  fail(chapters.error)
+  const chapterIds = (chapters.data ?? []).map((row) => row.id)
+  let itemIds = []
+  if (chapterIds.length) {
+    const links = await supabase.from('chapter_items').select('item_id').in('chapter_id', chapterIds)
+    fail(links.error)
+    itemIds = [...new Set((links.data ?? []).map((row) => row.item_id))]
+  }
+  const removed = await supabase.from('works').delete().eq('id', workId).select('id')
+  await wrote(Promise.resolve(removed))
+  if (!itemIds.length) return
+  const still = await supabase.from('chapter_items').select('item_id').in('item_id', itemIds)
+  fail(still.error)
+  const kept = new Set((still.data ?? []).map((row) => row.item_id))
+  const retire = itemIds.filter((id) => !kept.has(id))
+  if (!retire.length) return
+  const marked = await supabase
+    .from('items')
+    .update({ removed_at: publishedNow() })
+    .in('id', retire)
+    .select('id')
+  if (marked.error?.code === '42501' || String(marked.error?.message || '').includes('row-level security')) return
+  await wrote(Promise.resolve(marked))
+}
+
 export async function removeTrackRecord(trackId) {
   if (!TRACK_ID.test(trackId || '')) return
   const removed = await supabase.from('tracks').delete().eq('id', trackId).select('id')

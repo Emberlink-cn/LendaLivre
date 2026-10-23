@@ -155,6 +155,7 @@ export function AuthProvider({ children }) {
       ready,
       isAuthenticated: Boolean(user),
       isSuper: user?.role === 'super',
+      isAuthor: user?.role === 'autor',
       login,
       register,
       logout,

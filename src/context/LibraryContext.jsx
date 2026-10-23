@@ -4,6 +4,7 @@ import { listWorks } from '../data/catalog'
 import {
   publishNewWork,
   removeChapterRecord,
+  removeWorkRecord,
   removeItemRecord,
   removeTrackRecord,
   saveChapterRecord,
@@ -155,7 +156,7 @@ export function LibraryProvider({ children }) {
     let alive = true
     function pull() {
       loadRemoteWorks().then((next) => {
-        if (alive && next?.length) setRemote(next)
+        if (alive && next) setRemote(next)
       })
     }
     pull()
@@ -170,7 +171,7 @@ export function LibraryProvider({ children }) {
   }, [ready, user?.id])
 
   const works = useMemo(() => {
-    const catalog = remote?.length ? remote : listWorks()
+    const catalog = remote ?? listWorks()
     const publishedIds = new Set(catalog.map((work) => work.id))
     return [
       ...catalog.map((work) => {
@@ -191,7 +192,7 @@ export function LibraryProvider({ children }) {
 
   const refreshCatalog = useCallback(async () => {
     const next = await loadRemoteWorks()
-    if (!next?.length) throw new Error('Salvei, mas a tela não atualizou. Recarregue a página.')
+    if (!next) throw new Error('Salvei, mas a tela não atualizou. Recarregue a página.')
     setRemote(next)
   }, [])
 
@@ -303,6 +304,15 @@ export function LibraryProvider({ children }) {
     forgetChapter(workId, chapterId)
   }, [chapterRecord, refreshCatalog, forgetChapter])
 
+  const removeWork = useCallback(async (workId) => {
+    await removeWorkRecord(workId)
+    await refreshCatalog()
+    setLibrary((current) => ({
+      ...current,
+      works: current.works.filter((work) => work.id !== workId),
+    }))
+  }, [refreshCatalog])
+
   const removeChapter = useCallback(async (workId, chapterId) => {
     const chapter = chapterRecord(workId, chapterId)
     await removeChapterRecord(chapter?.dbId)
@@ -374,6 +384,7 @@ export function LibraryProvider({ children }) {
       updateWorkMoods,
       addItem,
       setChapterText,
+      removeWork,
       removeChapter,
       updateItem,
       removeItem,
@@ -381,7 +392,7 @@ export function LibraryProvider({ children }) {
       updateTrack,
       removeTrack,
     }),
-    [works, getWork, addWork, updateWorkDetails, updateChapterMeta, addChapter, updateWorkMoods, addItem, setChapterText, removeChapter, updateItem, removeItem, addTrack, updateTrack, removeTrack],
+    [works, getWork, addWork, updateWorkDetails, updateChapterMeta, addChapter, updateWorkMoods, addItem, setChapterText, removeWork, removeChapter, updateItem, removeItem, addTrack, updateTrack, removeTrack],
   )
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>
