@@ -31,10 +31,14 @@ export default function UserMenu({ variant = 'bar', onNavigate }) {
     }
   }, [open])
 
-  function leave() {
-    logout()
+  async function leave() {
+    try {
+      await logout()
+    } catch {
+      return
+    }
     onNavigate?.()
-    navigate('/entrar')
+    navigate('/entrar', { replace: true, state: { signedOut: true } })
   }
 
   if (variant === 'list') {

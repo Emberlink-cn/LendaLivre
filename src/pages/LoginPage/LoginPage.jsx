@@ -18,8 +18,9 @@ export default function LoginPage() {
   }, [])
 
   useEffect(() => {
+    if (location.state?.signedOut) return
     if (ready && isAuthenticated) navigate(from, { replace: true })
-  }, [ready, isAuthenticated, from, navigate])
+  }, [ready, isAuthenticated, from, navigate, location.state])
 
   async function handleSubmit(event) {
     event.preventDefault()

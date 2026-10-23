@@ -52,7 +52,7 @@ async function loadItems() {
 async function loadWorkRows() {
   const full = await supabase
     .from('works')
-    .select('id, title, line, collects, cover:media!works_cover_id_fkey(bucket, path)')
+    .select('id, title, line, collects, published_at, cover:media!works_cover_id_fkey(bucket, path)')
   if (!full.error) return full
   if (!/collects|schema cache/i.test(String(full.error.message || ''))) return full
   return supabase.from('works').select('id, title, line, cover:media!works_cover_id_fkey(bucket, path)')
@@ -61,7 +61,7 @@ async function loadWorkRows() {
 export async function loadRemoteWorks() {
   const [worksRes, chaptersRes, itemsRes, linksRes, tracksRes] = await Promise.all([
     loadWorkRows(),
-    supabase.from('chapters').select('id, work_id, slug, source_key, number, name, title, line, paragraphs, note, moods, cover:media!chapters_cover_id_fkey(bucket, path)'),
+    supabase.from('chapters').select('id, work_id, slug, source_key, number, name, title, line, paragraphs, note, moods, published_at, cover:media!chapters_cover_id_fkey(bucket, path)'),
     loadItems(),
     supabase.from('chapter_items').select('chapter_id, item_id, position'),
     supabase.from('tracks').select('id, chapter_id, title, embed_url, position'),
@@ -94,6 +94,7 @@ export async function loadRemoteWorks() {
           paragraphs: Array.isArray(chapter.paragraphs) ? chapter.paragraphs : [],
           note: chapter.note ?? '',
           moods: chapter.moods ?? [],
+          publishedAt: chapter.published_at,
           file: localChapter?.file || null,
           cover: mediaUrl(chapter.cover),
           fromDatabase: true,
@@ -113,6 +114,7 @@ export async function loadRemoteWorks() {
       file: local?.file || null,
       cover: mediaUrl(work.cover),
       collects: work.collects ?? work.id === 'terras',
+      publishedAt: work.published_at,
       moods: [],
       chapters,
       fromDatabase: true,

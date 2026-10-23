@@ -90,7 +90,8 @@ export default function Shell({ children }) {
   const menuBtnRef = useRef(null)
   const open = openPath === pathname
   const isHome = pathname === '/'
-  const showMenuButton = isAuthenticated || !isHome
+  const isLogin = pathname === '/entrar'
+  const showMenuButton = !isLogin && (isAuthenticated || !isHome)
   const isCatalog = pathname === '/catalogo'
   const isWork = /^\/obra\/[^/]+$/.test(pathname)
   const isReader = pathname.startsWith('/ler/')
@@ -214,7 +215,7 @@ export default function Shell({ children }) {
             <div className={styles.session}>
               <UserMenu />
             </div>
-          ) : (
+          ) : isLogin ? null : (
             <Link to="/entrar" className={styles.enter}>
               Entrar
             </Link>
