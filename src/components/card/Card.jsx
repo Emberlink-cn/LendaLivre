@@ -2,7 +2,8 @@ import { useLayoutEffect, useRef, useState } from 'react'
 
 /* Carta de item: CSS embutido, injetado uma vez.
    Card = frente, CardBack = verso, CardFlip = giro no clique.
-   Cores: white | black | green | blue | gold | red */
+   Cores da frente: white | black | green | blue | gold | red.
+   O verso é sempre preto com o detalhe dourado. */
 
 const CSS = `
 @import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap");
@@ -39,6 +40,8 @@ const CSS = `
   --fg:#cfe4ff; --fg2:#7ea6de; --gem:#4fc3ff; --paper:#cfd6dc; --stat1:#1a2f55; --stat2:#08101d; }
 .tcg--red   { --m1:#ffd3c2; --m2:#c9594a; --m3:#6f211b; --bg1:#411a1d; --bg2:#1a0a0c;
   --fg:#ffd3c2; --fg2:#d4806f; --gem:#ff5555; --paper:#dcc3a6; --stat1:#4a1d20; --stat2:#180809; }
+.tcg--verse { --m1:#f3dc9a; --m2:#c79a3d; --m3:#7a5517; --bg1:#101010; --bg2:#050505;
+  --fg:#f3dc9a; --fg2:#c79a3d; --gem:#e2b15a; --paper:#dac79b; --paper-ink:#2a2016; --stat1:#101010; --stat2:#050505; }
 
 .tcg__face, .tcg__frame { position: relative; }
 .tcg__frame {
@@ -230,11 +233,11 @@ export function Card({
   )
 }
 
-export function CardBack({ backImage, text = '', color = 'gold', className = '', rev = false }) {
+export function CardBack({ backImage, text = '', className = '', rev = false }) {
   useStyles()
   return (
     <FaceShell rev={rev} className={className}>
-      <article className={`tcg tcg--${color}`}>
+      <article className="tcg tcg--verse">
       <div className="tcg__frame tcg__back">
         <Corners />
         <div className="tcg__backart">
@@ -255,7 +258,7 @@ export function CardBack({ backImage, text = '', color = 'gold', className = '',
   )
 }
 
-export function CardFlip({ backImage, backText, backColor, ...front }) {
+export function CardFlip({ backImage, backText, ...front }) {
   useStyles()
   const [back, setBack] = useState(false)
 
@@ -279,7 +282,7 @@ export function CardFlip({ backImage, backText, backColor, ...front }) {
     >
       <div className="tcg-flip__in">
         <Card {...front} />
-        <CardBack rev backImage={backImage} text={backText} color={backColor || front.color} />
+        <CardBack rev backImage={backImage} text={backText} />
       </div>
     </div>
   )

@@ -344,7 +344,7 @@ function CollectFlight({ item, workTitle, onDone }) {
           color={card.frame}
           stats={faceStats(card)}
         />
-        <CardBack rev text={workTitle} color={card.frame} />
+        <CardBack rev text={workTitle} />
       </div>
     </div>,
     document.body,
