@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { Avatar } from '../common/Marks'
+import { useNarrow } from '../common/SearchToggle'
 import UserMenu from '../profile/UserMenu'
 import { useAuth } from '../../context/AuthContext'
 import { useInventory } from '../../context/InventoryContext'
@@ -35,6 +36,8 @@ function backTarget(pathname) {
   if (pathname.startsWith('/obra/') && pathname.split('/').length > 3) return `/obra/${pathname.split('/')[2]}`
   if (pathname.startsWith('/obra/')) return '/catalogo'
   if (pathname === '/entrar' || pathname === '/criar-conta') return '/'
+  if (pathname === '/evoluir/partida') return '/evoluir'
+  if (pathname.startsWith('/evoluir')) return '/inventario'
   return '/'
 }
 
@@ -88,6 +91,7 @@ export default function Shell({ children }) {
   const [scrolled, setScrolled] = useState(false)
   const drawerRef = useRef(null)
   const menuBtnRef = useRef(null)
+  const narrow = useNarrow()
   const open = openPath === pathname
   const isHome = pathname === '/'
   const isLogin = pathname === '/entrar'
@@ -96,6 +100,8 @@ export default function Shell({ children }) {
   const isWork = /^\/obra\/[^/]+$/.test(pathname)
   const isReader = pathname.startsWith('/ler/')
   const isInventory = pathname === '/inventario'
+  const isEvolve = pathname.startsWith('/evoluir')
+  const showEvolve = isInventory && narrow
   const guestLinks = pathname === '/entrar' ? LINKS.filter((link) => link.to !== '/catalogo') : LINKS
   const desktopLinks = isHome
     ? []
@@ -118,9 +124,11 @@ export default function Shell({ children }) {
       ? styles.mainRead
       : isAuth
         ? styles.mainAuth
-          : isInventory
+            : isInventory
             ? `${styles.main} ${styles.mainInventory}`
-            : isCatalog
+            : isEvolve
+              ? `${styles.main} ${styles.mainEvolve}`
+              : isCatalog
               ? `${styles.main} ${styles.mainCatalog}`
               : isWork
                 ? `${styles.main} ${styles.mainWork}`
@@ -171,6 +179,11 @@ export default function Shell({ children }) {
         <Link to="/" className={styles.brand}>
           LendaLivre
         </Link>
+        {showEvolve ? (
+          <Link to="/evoluir" className={styles.evolve}>
+            Evoluir cartas
+          </Link>
+        ) : null}
 
         {desktopLinks.length ? (
           <nav className={styles.desktopNav} aria-label="Principal">

@@ -49,6 +49,27 @@
   text-decoration: none;
 }
 
+.evolve {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.2rem;
+  padding: 0.15rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  color: var(--gold);
+  background: rgba(7, 8, 11, 0.45);
+  font-size: 0.78rem;
+  font-weight: 560;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+@media (max-width: 859px) {
+  .header:has(.evolve) .brand {
+    font-size: 1.08rem;
+  }
+}
+
 .desktopNav {
   display: none;
   gap: 0.35rem;
@@ -236,6 +257,11 @@
 
 .mainAuth {
   width: min(28rem, 100%);
+}
+
+.mainEvolve {
+  width: min(28rem, 100%);
+  padding-bottom: 1.25rem;
 }
 
 .mainHome {

@@ -7,6 +7,8 @@ import CatalogPage from '../pages/CatalogPage/CatalogPage'
 import CreatorPage from '../pages/CreatorPage/CreatorPage'
 import HomePage from '../pages/HomePage/HomePage'
 import InventoryPage from '../pages/InventoryPage/InventoryPage'
+import DeckPage from '../pages/EvolvePage/DeckPage'
+import MatchPage from '../pages/EvolvePage/MatchPage'
 import LoginPage from '../pages/LoginPage/LoginPage'
 import ProfilePage from '../pages/ProfilePage/ProfilePage'
 import ReadPage from '../pages/ReadPage/ReadPage'
@@ -73,6 +75,8 @@ export function AppRoutes() {
           <Route path="/ler/:workId/:chapterId" element={<ReadPage />} />
           <Route path="/perfil" element={<ProfilePage />} />
           <Route path="/inventario" element={<InventoryPage />} />
+          <Route path="/evoluir" element={<DeckPage />} />
+          <Route path="/evoluir/partida" element={<MatchPage />} />
           <Route path="/criador" element={<Navigate to="/criador/gerir" replace />} />
           <Route path="/criador/*" element={<CreatorPage />} />
           <Route path="/catalog" element={<Navigate to="/catalogo" replace />} />
