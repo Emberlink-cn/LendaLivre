@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Avatar } from '../common/Marks'
 import { useNarrow } from '../common/SearchToggle'
 import UserMenu from '../profile/UserMenu'
@@ -84,6 +84,8 @@ function BackButton({ pathname }) {
 export default function Shell({ children }) {
   const [toolsSlot, setToolsSlot] = useState(null)
   const { pathname } = useLocation()
+  const [params] = useSearchParams()
+  const matchWindow = pathname === '/evoluir/partida' && params.get('janela') === '1'
   const { theme } = useTheme()
   const { isAuthenticated, user } = useAuth()
   const { scaleIndex, scales, setScaleIndex } = useReading()
@@ -101,7 +103,7 @@ export default function Shell({ children }) {
   const isReader = pathname.startsWith('/ler/')
   const isInventory = pathname === '/inventario'
   const isEvolve = pathname.startsWith('/evoluir')
-  const showEvolve = isInventory && narrow
+  const showEvolve = isInventory
   const guestLinks = pathname === '/entrar' ? LINKS.filter((link) => link.to !== '/catalogo') : LINKS
   const desktopLinks = isHome
     ? []
@@ -127,7 +129,7 @@ export default function Shell({ children }) {
             : isInventory
             ? `${styles.main} ${styles.mainInventory}`
             : isEvolve
-              ? `${styles.main} ${styles.mainEvolve}`
+              ? `${styles.main} ${styles.mainEvolve}${matchWindow ? ` ${styles.mainMatchWindow}` : ''}`
               : isCatalog
               ? `${styles.main} ${styles.mainCatalog}`
               : isWork
@@ -175,11 +177,11 @@ export default function Shell({ children }) {
       <a className={styles.skip} href="#conteudo">
         Ir para o conteúdo
       </a>
-      <header className={headerClass}>
+      {matchWindow ? null : <header className={headerClass}>
         <Link to="/" className={styles.brand}>
           LendaLivre
         </Link>
-        {showEvolve ? (
+        {showEvolve && narrow ? (
           <Link to="/evoluir" className={styles.evolve}>
             Evoluir cartas
           </Link>
@@ -201,6 +203,11 @@ export default function Shell({ children }) {
         ) : null}
 
         <div className={styles.actions}>
+          {showEvolve && !narrow ? (
+            <Link to="/evoluir" className={styles.evolveDesk}>
+              Evoluir cartas
+            </Link>
+          ) : null}
           {isReader ? (
             <div className={styles.typeControls} aria-label="Tamanho do texto">
               <button
@@ -248,9 +255,9 @@ export default function Shell({ children }) {
             </button>
           ) : null}
         </div>
-      </header>
+      </header>}
 
-      {showMenuButton && open ? (
+      {matchWindow || !(showMenuButton && open) ? null : (
         <nav ref={drawerRef} id="menu-mobile" className={styles.drawer} aria-label="Menu">
           {navLinks.map((link) => (
             <NavLink key={link.to} to={link.to} end={link.end} className={styles.drawerLink}>
@@ -265,10 +272,10 @@ export default function Shell({ children }) {
             </Link>
           )}
         </nav>
-      ) : null}
+      )}
 
       <main id="conteudo" className={mainClass} data-sun={isReader && theme === 'light' ? 'off' : undefined}>
-        {isHome ? null : isReader || isInventory ? (
+        {matchWindow || isHome ? null : isReader || isInventory ? (
           <div className={styles.backRow}>
             <BackButton pathname={pathname} />
             {isReader ? <CollectBadge pathname={pathname} /> : null}

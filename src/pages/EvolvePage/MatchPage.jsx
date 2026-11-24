@@ -1,7 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Card, CardBack } from '../../components/card/Card'
 import { Avatar, ItemVisual } from '../../components/common/Marks'
 import { useAuth } from '../../context/AuthContext'
+import FullscreenButton from './FullscreenButton'
 import { dealPreview, usePilotDeck } from './pilot'
 import styles from './MatchPage.module.css'
 
@@ -33,6 +35,9 @@ function PlayedCard({ card }) {
 }
 
 export default function MatchPage() {
+  const stageRef = useRef(null)
+  const [params] = useSearchParams()
+  const windowed = params.get('janela') === '1'
   const { user } = useAuth()
   const { cards } = usePilotDeck()
   const { lanes, hand } = dealPreview(cards)
@@ -43,8 +48,11 @@ export default function MatchPage() {
   }, [])
 
   return (
-    <section className={styles.page}>
+    <section ref={stageRef} className={windowed ? `${styles.page} ${styles.pageWindow}` : styles.page}>
       <div className={styles.sky} aria-hidden="true" />
+      <div className={styles.toolbar}>
+        <FullscreenButton targetRef={stageRef} />
+      </div>
       <header className={styles.hud}>
         <p className={styles.player}>
           <Avatar name={user?.name || 'Você'} face={user?.avatar} size={36} />
