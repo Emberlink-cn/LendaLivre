@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Card, CardBack } from '../../components/card/Card'
 import { Avatar, ItemVisual } from '../../components/common/Marks'
 import { useAuth } from '../../context/AuthContext'
+import { cardsForMatch } from './decks'
 import FullscreenButton from './FullscreenButton'
 import { dealPreview, usePilotDeck } from './pilot'
 import styles from './MatchPage.module.css'
@@ -40,7 +41,11 @@ export default function MatchPage() {
   const windowed = params.get('janela') === '1'
   const { user } = useAuth()
   const { cards } = usePilotDeck()
-  const { lanes, hand } = dealPreview(cards)
+  const tableCards = useMemo(
+    () => cardsForMatch(user?.id, cards) ?? cards,
+    [user?.id, cards],
+  )
+  const { lanes, hand } = dealPreview(tableCards)
   const score = lanes.reduce((sum, lane) => sum + (lane.card?.stats?.ataque ?? 0), 0)
 
   useEffect(() => {
